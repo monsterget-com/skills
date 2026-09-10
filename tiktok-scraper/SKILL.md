@@ -88,6 +88,36 @@ Before anything, confirm with the user:
 - The platform backend is running (production `monsterget.com` is always on; for local, user must start `localhost:8000`).
 - **Which browser has the MonsterGet extension installed?** Chrome or Edge? Remember it for the session.
 
+### Step 0.5 — Verify the browser is logged in (automatic)
+
+**Do this before the first scrape of a session.** A scrape silently stalls if the browser isn't logged in to `{SITE_URL}`. Don't wait 5 minutes to find out — ask the platform to check:
+
+```bash
+# 1. Generate a taskId for the check
+LOGIN_ID=$(curl -s {BASE_URL}/api/agent/generate-task-id | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
+
+# 2. Open the check page (fire-and-forget — same pattern as a scrape)
+start msedge "{SITE_URL}/login-check.html?auto=1&agentTaskId=$LOGIN_ID"
+
+# 3. Poll for the result (zero-auth read; 404 = page hasn't reported yet)
+for i in $(seq 1 12); do
+  RESULT=$(curl -s "{BASE_URL}/api/agent/login-check/$LOGIN_ID")
+  echo "$RESULT" | grep -q '"logged_in"' && break
+  sleep 5
+done
+echo "$RESULT"
+```
+
+| Result | Meaning | What to do |
+|--------|---------|------------|
+| `{"logged_in":true,"email":"..."}` | Browser is logged in | Continue to Step 1 |
+| `{"logged_in":false}` | Not logged in | Tell the user to log in at `{SITE_URL}`, then **re-run this step** |
+| `404 login_check_not_found` for 60s | Page never reported | Browser/extension problem — check extension is installed; see Step 2 |
+
+> This check is **read-only and side-effect free** — it only reads the browser's existing login token and reports back. No account, no scrape, no credits.
+>
+> Do **not** block on it when scraping already works. It matters most on first use, after a long gap, or when a scrape stalls at `processing`.
+
 ### Step 1 — Preflight check (first time or when scraping fails)
 
 Quickly probe whether the platform is reachable and whether the extension handshake works:
