@@ -67,6 +67,21 @@ Username accepts `@name` or full profile URL (server normalizes).
 
 Follow these steps in order. Steps 0–2 are one-time setup; steps 3–4 are repeated per scrape.
 
+### ⚡ Automation contract (read this first)
+
+**Opening the browser is fire-and-forget. Never pause to ask the user "is it open?" or "shall I continue?"**
+
+Once you run the browser-open command, the page executes on its own — it creates the task with the taskId you already hold and the extension runs it. Your job is to *immediately* start polling. There is nothing to wait for.
+
+Rules that make the AI fast instead of slow:
+
+1. **Open + poll in one shot.** Run the browser-open command and the poll loop together (see Step 3c). Do not put a message to the user between them.
+2. **Never wait for user confirmation** after opening the browser. The user does not need to do anything (unless they aren't logged in yet — that's the one exception, and it shows up as the scrape never reaching `ready`).
+3. **Polling already detects completion.** The poll loop exits the moment the status is `ready` (or `failed`). You do not need to ask the user whether the task finished — the status endpoint tells you.
+4. **Multiple scrapes run back-to-back, unattended.** When the user asks for several scrapes, run them in a loop: open → poll → download → open the next one. Do **not** stop and report back between tasks. See "Running multiple scrapes" below.
+5. **A finished task frees the concurrency slot.** The scrape window may stay open — it does not block the next task. Only a task still `pending`/`processing` counts against the limit.
+6. **Only speak to the user** when: you need a one-time setup step (Step 0/2), a scrape fails, or all requested scrapes are done and you're presenting results.
+
 ### Step 0 — Confirm the environment (first time only)
 
 Before anything, confirm with the user:
@@ -124,7 +139,7 @@ Map intent → `{pagePath}?auto=1&agentTaskId={TASK_ID}&{param}={value}&count={N
 
 If count isn't given, use the type default (30 for tag/user search, 50 for video/user-videos). Cap at 300. Path segment separator is a **hyphen** (`/tiktok-search-video`), never an underscore.
 
-#### 3c. Open the page in the chosen browser
+#### 3c. Open the page in the chosen browser — **fire-and-forget**
 
 ⚠️ **URL must be wrapped in double quotes** — otherwise the shell treats `&` as a command separator and truncates the query.
 
@@ -138,9 +153,11 @@ If `start` isn't available, use the full exe path:
 "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" "https://monsterget.com/tiktok-search-video?auto=1&agentTaskId=$TASK_ID&query=mike&count=10"
 ```
 
-> ⚠️ **AI can't see the browser.** Do NOT wait to read the URL bar. The page will create the task with the taskId you already hold. Just tell the user to watch the page and log in if prompted.
+> 🚀 **Do NOT wait after opening the browser.** The command returning means the browser process was launched — that's all you need. Do not ask the user "is it open?", do not pause, do not read the URL bar. The page creates the task with the taskId you already hold and runs automatically. **Go straight to Step 3d and poll.**
 
-#### 3d. Poll until ready
+#### 3d. Poll until ready — **start immediately, start in the background**
+
+Open the browser **and start polling in the same step**. Use your tool's run_in_background feature for the poll loop so it works while you can still interact with the user (or start the next task in serial mode):
 
 ```bash
 # Bash / Mac / Linux — poll every 5s, up to 60 times (5-minute timeout)
@@ -194,6 +211,27 @@ start msedge "https://monsterget.com/tiktok-profile?auto=1&agentTaskId=$TASK_ID&
 
 The platform creates a **parent task** that chains through each profile sequentially. Poll and download using `$TASK_ID` — the CSV contains one row per creator with aggregated profile stats.
 
+### Running multiple scrapes (serial batch)
+
+When the user asks for **several scrapes at once** (e.g. "test all 5 scrapers"), run them **back-to-back in a loop, unattended**:
+
+```
+1. TASK_ID = generate-task-id
+2. open browser page 1          (fire-and-forget)
+3. poll until ready             (background)
+4. download CSV 1
+5. TASK_ID = generate-task-id
+6. open browser page 2          ← do NOT wait for the user between tasks
+7. poll → download
+... repeat ...
+```
+
+Key rules:
+- **Do not stop to ask the user between tasks.** Each new scrape is independent and the concurrency slot frees as soon as the previous one is `ready`.
+- The old browser tab may stay open — **it does not block anything**. Close tabs only if you want to reduce clutter.
+- Only **serialize if the user has 1 concurrent window** (free tier). If you get a `429 too_many_concurrent_scrapes`, it means a previous task is still `pending`/`processing` — wait for it to be `ready`/`failed`, then continue.
+- Report all results **at the end**, together, not one at a time.
+
 ## Error handling
 
 | Symptom | Cause | Fix |
@@ -206,19 +244,26 @@ The platform creates a **parent task** that chains through each profile sequenti
 | download → `409 not_ready` | data not ready | keep polling |
 | download → `409 buffer_unavailable` | buffer cleared by TTL race | retry a few seconds |
 | download → `410 already_downloaded` | already fetched once | do NOT retry; regenerate a taskId and run a new scrape |
-| 429 too_many_concurrent_scrapes | a previous task is still running | free users have 1 concurrent window — wait for it to finish; members get up to 10 |
+| 429 too_many_concurrent_scrapes | a previous task is still pending/processing | free users have 1 concurrent window — wait for the running task to reach `ready`/`failed`, then retry. Closing the browser tab is NOT required; a finished task already frees the slot |
 | 402 insufficient_credits | credits exhausted | signup grants 10M credits — almost never runs out; need more? contact the platform |
 
 ## Concurrency note
 
-Free-tier users have **1 concurrent scrape window** (plenty for daily use). Member tiers can run **up to 10 in parallel**. If a previous task blocks because the page was left open, it auto-expires after 30 seconds — just retry.
+Free-tier users have **1 concurrent scrape window** (plenty for daily use). Member tiers can run **up to 10 in parallel**.
+
+The limit counts **running tasks**, not open windows:
+- A task counts while it is `pending` or `processing` (the extension is still working).
+- The moment a task reaches `ready`, the slot is **freed** — you can open the next scrape right away.
+- **An open browser tab with a finished task does NOT block the next task.** Leave tabs open; there is no need to close them.
+- A `pending` task that was never claimed (extension not ready / page abandoned) auto-expires after ~30 seconds.
 
 ## Gotchas
 
 - **Use the extension-installed browser.** Never rely on the system default browser — it may not have the extension. Ask once, remember the answer.
 - **Never call `POST /api/agent/scrape` yourself.** The page does it automatically with your taskId. Calling it manually is not needed and requires auth.
 - **Never run headless / sandbox scraping.** Scrapes execute in the user's real browser for anti-ban. If you're sandboxed and can't open a local browser, tell the user to run a local AI terminal (Claude Code CLI, local Codex).
-- **Keep the tab open** until `ready`. Closing the tab before the extension reports results means no server copy is produced.
+- **Keep the tab open** until the task reaches `ready`. Closing the tab before the extension reports results means no server copy is produced.
+- **Do not wait for the user between scrapes.** Open → poll → download → next, all in one uninterrupted run.
 - After downloading, show the user the CSV path and a preview so they trust the result.
 
 ## Sources
