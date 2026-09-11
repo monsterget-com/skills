@@ -2,13 +2,15 @@
 
 > **Stop getting blocked. Scrape TikTok through your real browser — your existing logged-in session. AI-automated, zero-setup, permanently free.**
 
-[![永久免费](https://img.shields.io/badge/🆓-永久免费-22bb33?style=flat-square)](https://monsterget.com)
+**English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Português](README.pt.md)
+
+[![Permanently Free](https://img.shields.io/badge/🆓-Permanently%20Free-22bb33?style=flat-square)](https://monsterget.com)
 [![AI Native](https://img.shields.io/badge/🤖-AI%20Native-2196F3?style=flat-square)](https://monsterget.com)
-[![10M Credits](https://img.shields.io/badge/📦-注册即享%201000万条-FF9800?style=flat-square)](https://monsterget.com)
+[![10M Credits](https://img.shields.io/badge/📦-10M%20on%20Signup-FF9800?style=flat-square)](https://monsterget.com)
 
 ---
 
-## ✨ It's what?
+## ✨ What is it?
 
 **MonsterGet Skills** turn any AI assistant into a TikTok data powerhouse — without your accounts getting banned.
 

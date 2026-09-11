@@ -5,8 +5,8 @@ description: 🎁 Permanently free — 10M entries on signup, 1 concurrent windo
 
 # TikTok Scraper
 
-> 🎁 **永久免费 · 注册即享 1000万条额度 · 免费用户 1 个并发窗口**
-> *(Permanently free · 10 million entries on signup · 1 concurrent window for free users. Members unlock more parallel windows.)*
+> 🎁 **Permanently free · 10 million entries on signup · 1 concurrent window for free users**
+> *(Members unlock more parallel windows.)*
 
 ## What is this?
 
@@ -21,6 +21,17 @@ Scrape TikTok data through the MonsterGet platform running on the user's machine
 ## When to use
 
 User wants TikTok data: video search, user/creator search, hashtag/tag search, or a specific creator's videos — typically for market research, competitor analysis, influencer discovery, content monitoring.
+
+## 🌍 Language rule (read before anything else)
+
+**Always communicate with the user in the user's own language.** Every message you print for the user — the setup checklist, progress updates, failure explanations, the final result summary — must be in the language the user writes to you in. This skill's instructions are written in English for precision, but that is *not* the language you speak to the user.
+
+- User writes Chinese → reply in Chinese
+- User writes Japanese → reply in Japanese
+- User writes Spanish / Portuguese / Korean / … → reply in that language
+- Never mix two languages in one user-facing message
+
+The zh-CN localized wording for the setup checklist is provided verbatim in the **Appendix** at the end of this file. Use it only when the user's language is Chinese; otherwise translate the English version yourself.
 
 ## Architecture (what actually happens)
 
@@ -65,24 +76,24 @@ Username accepts `@name` or full profile URL (server normalizes).
 
 ## The full flow
 
-> 🚨 **首次使用四步法（严格按顺序执行）**
+> 🚨 **First-time flow (follow in strict order)**
 >
 > ```
 > ┌─────────────────────────────────────────────────────────────────┐
-> │  首次请求爬虫                                                    │
-> │     │                                                            │
-> │     ├── Step 0: 打印首次准备清单 → 等用户说"好了"                 │
-> │     │    (安装扩展 + 登录 MonsterGet + 登录 TikTok)              │
-> │     │                                                            │
-> │     ├── Step 0.5: 自动检测循环                                   │
-> │     │     while (有未通过项):                                     │
-> │     │       检测所有项 → 全部通过? → Yes 跳出                     │
-> │     │       No → 列出未通过项 + 引导用户 → 等用户说"好了" → 重测  │
-> │     │                                                            │
-> │     ├── Step 1~3: 正常执行爬虫                                  │
-> │     │                                                            │
-> │     └── 首次爬虫成功后 → 标记 Preflight 已完成                    │
-> │         同 session 后续爬虫请求直接到 Step 1，跳过 Step 0/0.5     │
+> │  First scrape request                                           │
+> │     │                                                           │
+> │     ├── Step 0: print setup checklist → wait for user "done"    │
+> │     │    (install extension + log in MonsterGet + log in TikTok)│
+> │     │                                                           │
+> │     ├── Step 0.5: auto-check loop                               │
+> │     │     while (any check failed):                             │
+> │     │       check all → all pass? → yes: exit loop              │
+> │     │       no → list failures + guide user → wait "done" → recheck │
+> │     │                                                           │
+> │     ├── Step 1~3: run the scrape normally                       │
+> │     │                                                           │
+> │     └── after first success → mark Preflight done               │
+> │         later scrapes this session go straight to Step 1        │
 > └─────────────────────────────────────────────────────────────────┘
 > ```
 
@@ -101,51 +112,51 @@ Rules that make the AI fast instead of slow:
 5. **A finished task frees the concurrency slot.** The scrape window may stay open — it does not block the next task. Only a task still `pending`/`processing` counts against the limit.
 6. **Only speak to the user** when: first-time setup (Step 0–0.5), a scrape fails, or all requested scrapes are done and you're presenting results.
 
-### Step 0 — 🚀 首次准备清单（仅首次，等用户确认）
+### Step 0 — 🚀 First-time setup checklist (once only, wait for user)
 
-> **💡 SKIP RULE**: 如果 `PREFLIGHT_DONE=true`（当前 session 已成功完成过首次爬虫），跳过 Step 0 / 0.5，直接到 Step 1。
+> **💡 SKIP RULE**: If `PREFLIGHT_DONE=true` (this session has already completed a first-time scrape), skip Step 0 / 0.5 entirely, go directly to Step 1.
 
-告诉用户需要完成 3 件事才开始：
+Tell the user they need to complete these 3 steps:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  🚀 首次使用准备（仅需做一次）
+  🚀 First-time setup (only needed once)
 
-  请按以下顺序完成 3 步：
+  Complete these 3 steps in order:
 
-  ① 安装 MonsterGet 浏览器扩展
-     打开 {SITE_URL}/install，按指引安装到 Edge 浏览器
+  ① Install the MonsterGet browser extension
+     Open {SITE_URL}/install and follow the guide for Edge/Chrome
 
-  ② 登录 monsterget.com
-     打开 {SITE_URL}，注册/登录您的账号（或使用游客登录）
+  ② Log in to monsterget.com
+     Open {SITE_URL}, register or sign in (guest login also works)
 
-  ③ 在浏览器中登录 TikTok
-     打开 https://www.tiktok.com，登录您的 TikTok 账号
-     （如果只使用非 TikTok 爬虫，此步可跳过）
+  ③ Log in to TikTok in your browser
+     Open https://www.tiktok.com and sign in to your TikTok account
+     (If you're only scraping non-TikTok platforms, this step can be skipped)
 
-  完成后请回复"好了"，我来自动检测。
+  After completing all steps, reply with "done" and I'll run auto-checks.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-等待用户回复"好了"或确认完成后，进入 Step 0.5。
+Wait for the user to confirm completion, then proceed to Step 0.5.
 
-### Step 0.5 — 🔄 自动检测循环（仅首次）
+### Step 0.5 — 🔄 Auto-check loop (first time only)
 
-> 从 Step 0 收到用户确认后执行。**不单独调用**——必须紧跟 Step 0。
+> Run only after receiving user confirmation from Step 0. **Never called standalone** — must follow Step 0 immediately.
 
-检测三项，结果分为"通过/未通过"。**全部通过 → 告诉用户后跳 Step 1**。有未通过项 → 列出 + 引导 → 等用户"好了" → **只重检测未通过项** → 循环直至全部通过。
+Three checks, each returns "pass" or "fail". **All pass → tell user and jump to Step 1**. Any fail → list failures + guide → wait for user "done" → **re-check only the failed ones** → loop until all pass.
 
-#### 检测函数速查
+#### Check functions (quick reference)
 
 ```bash
-# ① 扩展安装检测（shell 本地扫描，不需要开浏览器）
+# ① Extension install check (local shell scan, no browser needed)
 _check_extension() {
   EDGE_EXT=$(grep -l "MonsterGet" "$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Preferences" 2>/dev/null || echo "")
   CHROME_EXT=$(grep -l "MonsterGet" "$HOME/AppData/Local/Google/Chrome/User Data/Default/Preferences" 2>/dev/null || echo "")
   if [ -n "$EDGE_EXT" ] || [ -n "$CHROME_EXT" ]; then echo "ok"; else echo "missing"; fi
 }
 
-# ② MonsterGet 登录检测（需开浏览器页面回报）
+# ② MonsterGet login check (needs a browser page to report back)
 _check_monsterget_login() {
   local MG_ID=$(curl -s "$BASE_URL/api/agent/generate-task-id" | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
   start msedge "$SITE_URL/login-check.html?auto=1&agentTaskId=$MG_ID"
@@ -157,7 +168,7 @@ _check_monsterget_login() {
   echo '{"logged_in":false}'
 }
 
-# ③ 目标站（TikTok）登录检测（需开浏览器页面回报）
+# ③ Target-site (TikTok) login check (needs a browser page to report back)
 _check_target_login() {
   local T=$(curl -s -X POST "$BASE_URL/api/agent/login-check-target" \
     -H "Content-Type: application/json" -d '{"target":"tiktok"}')
@@ -172,17 +183,17 @@ _check_target_login() {
 }
 ```
 
-#### 循环逻辑
+#### Loop logic
 
 ```python
-# Python 伪代码 — 按此逻辑执行
+# Pseudocode — execute as described
 checks = {
-    "extension": {"fn": _check_extension, "guide": "打开 {SITE_URL}/install 安装扩展"},
-    "monsterget": {"fn": _check_monsterget_login, "guide": "打开 {SITE_URL} 登录"},
-    "target_tiktok": {"fn": _check_target_login, "guide": "在浏览器登录 https://www.tiktok.com"},
+    "extension": {"fn": _check_extension, "guide": "Open {SITE_URL}/install to install the extension"},
+    "monsterget": {"fn": _check_monsterget_login, "guide": "Open {SITE_URL} and sign in"},
+    "target_tiktok": {"fn": _check_target_login, "guide": "Log in to https://www.tiktok.com in your browser"},
 }
 
-# 首次检测全部三项；后续循环只测 failed_items
+# First iteration checks all three; subsequent rounds only re-check failed_items
 failed_items = list(checks.keys())
 
 while True:
@@ -198,33 +209,33 @@ while True:
             if "false" in result: current_fails.append(name)
 
     if not current_fails:
-        tell_user "✅ 全部检测通过！开始抓取..."
-        PREFLIGHT_DONE=true  # 记录 session 变量
+        tell_user_in_own_language "✅ All checks passed! Starting scrape..."
+        PREFLIGHT_DONE=true  # session variable
         break
 
-    # 有未通过的项
-    tell_user "以下项目未通过："
+    # Some items failed
+    tell_user_in_own_language "The following items did not pass:"
     for name in current_fails:
-        tell_user f"  ❌ {name}: {checks[name]['guide']}"
-    tell_user "完成后请回复'好了'，我将重新检测未通过项。"
+        tell_user_in_own_language f"  ❌ {name}: {checks[name]['guide']}"
+    tell_user_in_own_language "After completion, reply 'done' and I'll re-check the failed items."
 
     wait_user_reply_ok()
-    failed_items = current_fails  # 下一轮只测这些
+    failed_items = current_fails  # next round only checks these
 
-# 跳出循环后 → 进入 Step 1
+# After loop → Step 1
 ```
 
-#### 实际执行指引
+#### Execution guidance
 
-1. **先后顺序**：先跑 ①（扩展，最快，不需开浏览器）→ ②（MonsterGet 登录）→ ③（TikTok 登录）。
-   - 如果 ① 未通过，**阻止** ② 和 ③（扩展不在，后两项必失败），直接报"扩展未安装"。
-2. **轮询超时**：每项最长等 60 秒（12 次 × 5 秒）。超时视为失败。
-3. **用户等待**：每次检测开浏览器后立即进入轮询，不打断用户。
-4. **成功后标记**：`PREFLIGHT_DONE=true`，同 session 后续抓取**直接跳到 Step 1**，不再引导/检测。
+1. **Order**: run ① (extension, fastest, no browser needed) → ② (MonsterGet login) → ③ (TikTok login).
+   - If ① fails, **block** ② and ③ (no extension means they'll both fail anyway), tell user "extension not installed" directly.
+2. **Poll timeout**: 60 seconds max per check (12 × 5s). Timeout = fail.
+3. **User wait**: after opening the browser, poll immediately — don't interrupt the user.
+4. **Post-success flag**: `PREFLIGHT_DONE=true`, subsequent scrapes in the same session **jump directly to Step 1**, no more setup/checks.
 
-### Step 1 — 平台可达性检测
+### Step 1 — Platform reachability check
 
-> 💡 如果 `PREFLIGHT_DONE=true`，**这是本次抓取的第一个步骤**（跳过 Step 0/0.5）。
+> 💡 If `PREFLIGHT_DONE=true`, this is the **first step** for this scrape (skipping Step 0/0.5).
 
 Quickly probe whether the platform is reachable:
 
@@ -238,14 +249,14 @@ curl -s -o /dev/null -w "%{http_code}" {BASE_URL}/api/agent/generate-task-id
 
 If scraping previously failed with an extension error, ask the user to verify the extension is installed and the browser is logged in (see Troubleshooting).
 
-### Step 2 — 首次准备（已合入 Step 0）
+### Step 2 — First-time setup (folded into Step 0)
 
-> ✅ 首次引导 + 检测循环已在 Step 0 → 0.5 中完成。此处不再重复。
+> ✅ The first-time guide + check loop was completed in Step 0 → 0.5. Not repeated here.
 >
-> 如果用户报告扩展缺失或登录问题，参考 Step 0 的引导清单：
-> - 安装扩展：`{SITE_URL}/install`
-> - 登录 MonsterGet：`{SITE_URL}`
-> - 登录目标站（TikTok）：`https://www.tiktok.com`
+> If the user reports a missing extension or login problem, refer to Step 0's checklist:
+> - Install extension: `{SITE_URL}/install`
+> - Log in to MonsterGet: `{SITE_URL}`
+> - Log in to the target site (TikTok): `https://www.tiktok.com`
 
 ### Step 3 — Run a scrape (repeatable)
 
@@ -374,7 +385,7 @@ Key rules:
 | status stays `processing` > 5 min | extension missing, browser not logged in, or page closed | confirm extension installed + logged in + page still open; page must stay open until scrape completes |
 | status endpoint never reaches `ready`, page shows "extension not ready" | extension not installed / not enabled | install extension from `{SITE_URL}/install`, reload page |
 | page shows "please log in" | not logged in | log in on `{SITE_URL}`, reopen page |
-| Step 0.5 检测 ③ TikTok 未通过 | 浏览器未登录 TikTok | 在 TikTok 登录后回复"好了"，AI 重测 |
+| Step 0.5 check ③ TikTok login failed | browser not logged into TikTok | log into TikTok, reply "done", AI re-checks |
 | download → `409 not_ready` | data not ready | keep polling |
 | download → `409 buffer_unavailable` | buffer cleared by TTL race | retry a few seconds |
 | download → `410 already_downloaded` | already fetched once | do NOT retry; regenerate a taskId and run a new scrape |
@@ -404,3 +415,38 @@ The limit counts **running tasks**, not open windows:
 
 - Platform: [monsterget.com](https://monsterget.com)
 - Skill repository: [github.com/rosstzc/monsterget.com-skills](https://github.com/rosstzc/monsterget.com-skills)
+
+---
+
+## Appendix — zh-CN localized user-facing copy
+
+> Use the Chinese wording below **only** when the user writes to you in Chinese. For all other languages, translate the English text in the body yourself. Never show this appendix to the user.
+
+### Step 0 checklist (中文)
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🚀 首次使用准备（仅需做一次）
+
+  请按以下顺序完成 3 步：
+
+  ① 安装 MonsterGet 浏览器扩展
+     打开 {SITE_URL}/install，按指引安装到 Edge 浏览器
+
+  ② 登录 monsterget.com
+     打开 {SITE_URL}，注册/登录您的账号（或使用游客登录）
+
+  ③ 在浏览器中登录 TikTok
+     打开 https://www.tiktok.com，登录您的 TikTok 账号
+     （如果只使用非 TikTok 爬虫，此步可跳过）
+
+  完成后请回复"好了"，我来自动检测。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### Step 0.5 loop messages (中文)
+
+- All passed: `✅ 全部检测通过！开始抓取...`
+- Failures heading: `以下项目未通过：`
+- Per-failure: `❌ {name}: {guide}` (use the same guides as the English table)
+- After fixes: `完成后请回复'好了'，我将重新检测未通过项。`
