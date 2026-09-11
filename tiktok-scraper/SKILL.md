@@ -56,6 +56,25 @@ DEFAULT_BROWSER = msedge                     # msedge | chrome | open (mac) | xd
 
 Change `SITE_URL`/`BASE_URL` when the platform is running locally (`http://localhost:8000`).
 
+### Cold-start contract (crucial — read before any step)
+
+**`PREFLIGHT_DONE` is `false` at the start of every new conversation.** Memory, prior conversations, and "I already told the user this before" must **never** set it.
+
+**Verification is mandatory every session — but it does not have to cost the user anything.** Pick the entry path that matches what you actually know:
+
+| Situation | Entry path | Cost to user |
+|-----------|-----------|--------------|
+| First time ever, or the user says they haven't set up | **Step 0 → Step 0.5** (checklist + full check loop) | ~2 min, once |
+| Setup is presumed already done (your memory, a previous session, or the user says "already installed") | **Step 0.6** — silent programmatic preflight | **zero** — no questions asked |
+
+Both paths end the same way: `PREFLIGHT_DONE=true`, only after checks actually pass. **There is no third path that skips verification.**
+
+- Prior knowledge ("the extension was installed last week") ≠ this session has verified it. It selects **which** path you take, never **whether** you verify.
+- If Step 0.6 fails, escalate to the Step 0 checklist — do not proceed to a scrape.
+- Never infer "verified" from the fact that a previous scrape succeeded. Every new conversation re-verifies.
+
+**Key insight**: the check functions run programmatically, not by asking the user. "Don't bother the user" means "verify silently", never "skip verification".
+
 ## Scrape types
 
 > ⚠️ **This table may be stale.** New scrapers are NOT auto-synced into this skill file. Before mapping the user's request to a type, fetch the live list (zero-auth, read-only) and use it if it differs from the table:
@@ -76,45 +95,51 @@ Username accepts `@name` or full profile URL (server normalizes).
 
 ## The full flow
 
-> 🚨 **First-time flow (follow in strict order)**
+> 🚨 **Flow — two entry paths, same destination**
 >
 > ```
-> ┌─────────────────────────────────────────────────────────────────┐
-> │  First scrape request                                           │
-> │     │                                                           │
-> │     ├── Step 0: print setup checklist → wait for user "done"    │
-> │     │    (install extension + log in MonsterGet + log in TikTok)│
-> │     │                                                           │
-> │     ├── Step 0.5: auto-check loop                               │
-> │     │     while (any check failed):                             │
-> │     │       check all → all pass? → yes: exit loop              │
-> │     │       no → list failures + guide user → wait "done" → recheck │
-> │     │                                                           │
-> │     ├── Step 1~3: run the scrape normally                       │
-> │     │                                                           │
-> │     └── after first success → mark Preflight done               │
-> │         later scrapes this session go straight to Step 1        │
-> └─────────────────────────────────────────────────────────────────┘
+> ┌────────────────────────────────────────────────────────────────────────┐
+> │  First scrape of this session                                         │
+> │     │                                                                 │
+> │     ├── [Path A] No prior knowledge / user says not set up            │
+> │     │     │                                                           │
+> │     │     ├── Step 0: print setup checklist → wait "done"             │
+> │     │     ├── Step 0.5: auto-check loop (all three checks)            │
+> │     │     │     while (any fail): fix → "done" → recheck only fails  │
+> │     │     │                                                           │
+> │     │     └── all pass → PREFLIGHT_DONE=true → proceed to Step 1      │
+> │     │                                                                 │
+> │     ├── [Path B] Setup presumed done (memory / prior session)         │
+> │     │     │                                                           │
+> │     │     └── Step 0.6: silent programmatic preflight (calls checks)  │
+> │     │           all pass → PREFLIGHT_DONE=true, continue              │
+> │     │           any fail → escalate to Step 0 checklist               │
+> │     │                                                                 │
+> │     ├── Step 1~3: run the scrape normally                             │
+> │     │                                                                 │
+> │     └── after first success → subsequent scrapes this session         │
+> │         skip Step 0/0.5/0.6 entirely, go straight to Step 1            │
+> └────────────────────────────────────────────────────────────────────────┘
 > ```
 
 ### ⚡ Automation contract (read this first)
 
-**Opening the browser is fire-and-forget. Never pause to ask the user "is it open?" or "shall I continue?"**
+**Opening the browser is fire-and-forget — but launching it is NOT.** Never pause to ask the user "is it open?" or "shall I continue?". Do **not** skip the silent process check in Step 3c.1 — "don't ask the user" means "verify programmatically instead", not "verify nothing".
 
-Once you run the browser-open command, the page executes on its own — it creates the task with the taskId you already hold and the extension runs it. Your job is to *immediately* start polling. There is nothing to wait for.
+Once you run the browser-open command, the page executes on its own — it creates the task with the taskId you already hold and the extension runs it. Your job is to *immediately* start polling. There is nothing to wait for from the user.
 
 Rules that make the AI fast instead of slow:
 
-1. **Open + poll in one shot.** Run the browser-open command and the poll loop together (see Step 3c). Do not put a message to the user between them.
+1. **Open + verify + poll in one shot.** Run the browser-open command, the Step 3c.1 process check, and the poll loop together (see Step 3c). Do not put a message to the user between them.
 2. **Never wait for user confirmation** after opening the browser. The user does not need to do anything (unless they aren't logged in yet — that's the one exception, and it shows up as the scrape never reaching `ready`).
 3. **Polling already detects completion.** The poll loop exits the moment the status is `ready` (or `failed`). You do not need to ask the user whether the task finished — the status endpoint tells you.
-4. **Multiple scrapes run back-to-back, unattended.** When the user asks for several scrapes, run them in a loop: open → poll → download → open the next one. Do **not** stop and report back between tasks. See "Running multiple scrapes" below.
+4. **Multiple scrapes run back-to-back, unattended.** When the user asks for several scrapes, run them in a loop: open → verify → poll → download → open the next one. Do **not** stop and report back between tasks. See "Running multiple scrapes" below.
 5. **A finished task frees the concurrency slot.** The scrape window may stay open — it does not block the next task. Only a task still `pending`/`processing` counts against the limit.
 6. **Only speak to the user** when: first-time setup (Step 0–0.5), a scrape fails, or all requested scrapes are done and you're presenting results.
 
 ### Step 0 — 🚀 First-time setup checklist (once only, wait for user)
 
-> **💡 SKIP RULE**: If `PREFLIGHT_DONE=true` (this session has already completed a first-time scrape), skip Step 0 / 0.5 entirely, go directly to Step 1.
+> **💡 SKIP RULE**: Step 0 + 0.5 run together only on **Path A** (no prior knowledge, or user says setup not done). If you have prior knowledge the setup is already complete, go **Path B** — Step 0.6 only, no checklist. Once `PREFLIGHT_DONE=true` in this session, skip Steps 0/0.5/0.6 entirely for later scrapes.
 
 Tell the user they need to complete these 3 steps:
 
@@ -144,7 +169,7 @@ Wait for the user to confirm completion, then proceed to Step 0.5.
 
 > Run only after receiving user confirmation from Step 0. **Never called standalone** — must follow Step 0 immediately.
 
-Three checks, each returns "pass" or "fail". **All pass → tell user and jump to Step 1**. Any fail → list failures + guide → wait for user "done" → **re-check only the failed ones** → loop until all pass.
+Three checks, each returns "pass" or "fail". **All pass → tell the user, set `PREFLIGHT_DONE=true`, proceed to Step 1**. Any fail → list failures + guide → wait for user "done" → **re-check only the failed ones** → loop until all pass.
 
 #### Check functions (quick reference)
 
@@ -231,11 +256,60 @@ while True:
    - If ① fails, **block** ② and ③ (no extension means they'll both fail anyway), tell user "extension not installed" directly.
 2. **Poll timeout**: 60 seconds max per check (12 × 5s). Timeout = fail.
 3. **User wait**: after opening the browser, poll immediately — don't interrupt the user.
-4. **Post-success flag**: `PREFLIGHT_DONE=true`, subsequent scrapes in the same session **jump directly to Step 1**, no more setup/checks.
+4. **Post-success flag**: `PREFLIGHT_DONE=true`. Subsequent scrapes in the same session skip Steps 0/0.5/0.6 entirely, go straight to Step 1.
+
+### Step 0.6 — 🪄 Silent preflight (programmatic, ~20 seconds)
+
+> **Path B entry** — use when you have prior knowledge the setup is already done (memory, a previous session, or the user says "already installed"). Runs checks programmatically. **If in doubt about the setup state, run Step 0 → 0.5 (Path A) instead.**
+
+A silent programmatic check — no user interaction required, no questions asked.  
+If all pass → `PREFLIGHT_DONE=true`, proceed to Step 1. If any fail → escalate to the user with the Step 0 checklist.
+
+```bash
+# ① Extension install check (local file scan, 0.1s, no browser needed)
+EXT_RESULT=$(_check_extension)   # defined in Step 0.5
+if [ "$EXT_RESULT" = "missing" ]; then
+  echo "FAIL: extension not found"
+  # → show Step 0 checklist to user, stop. Do NOT proceed to a scrape.
+fi
+
+# ② MonsterGet reachability (API probe, 1s)
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/agent/generate-task-id")
+if [ "$HTTP_CODE" != "200" ]; then
+  echo "FAIL: platform unreachable (HTTP $HTTP_CODE)"
+  # → tell user platform isn't reachable, stop. Do NOT proceed to a scrape.
+fi
+
+# ③ Browser launch + login check — generate taskId, open a login-check page, poll
+TASK_ID=$(curl -s "$BASE_URL/api/agent/generate-task-id" | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
+start msedge "$SITE_URL/login-check.html?auto=1&agentTaskId=$TASK_ID"
+# verify the browser process started (same rule as Step 3c.1)
+sleep 3
+if tasklist /fi "IMAGENAME eq msedge.exe" 2>/dev/null | grep -q msedge; then
+  echo "OK: browser started"
+else
+  echo "FAIL: browser did not start — retry with full exe path (see Step 3c.1)"
+fi
+
+LOGIN_OK="false"
+for i in 1 2 3; do
+  RESULT=$(curl -s "$BASE_URL/api/agent/login-check/$TASK_ID")
+  echo "$RESULT" | grep -q '"logged_in"' && { LOGIN_OK="true"; break; }
+  sleep 2
+done
+if [ "$LOGIN_OK" != "true" ]; then
+  echo "FAIL: not logged in"
+  # → show Step 0 checklist to user, stop
+fi
+```
+
+**On failure**: present the Step 0 checklist to the user, wait for "done", then re-run Step 0.6 (not the full Step 0 → 0.5).
+
+**On success**: set `PREFLIGHT_DONE=true` (and `SESSION_PREFLIGHT_PASSED=true`). Subsequent scrapes this session skip Steps 0/0.5/0.6 entirely.
 
 ### Step 1 — Platform reachability check
 
-> 💡 If `PREFLIGHT_DONE=true`, this is the **first step** for this scrape (skipping Step 0/0.5).
+> 💡 If `PREFLIGHT_DONE=true` (set by Step 0.5 or Step 0.6), this is the **first step** for this scrape — Steps 0/0.5/0.6 are skipped.
 
 Quickly probe whether the platform is reachable:
 
@@ -297,7 +371,48 @@ If `start` isn't available, use the full exe path:
 "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" "https://monsterget.com/tiktok-search-video?auto=1&agentTaskId=$TASK_ID&query=mike&count=10"
 ```
 
-> 🚀 **Do NOT wait after opening the browser.** The command returning means the browser process was launched — that's all you need. Do not ask the user "is it open?", do not pause, do not read the URL bar. The page creates the task with the taskId you already hold and runs automatically. **Go straight to Step 3d and poll.**
+> 🚀 **Do NOT ask the user** "is it open?" after opening the browser. Do not pause, do not read the URL bar. The page creates the task with the taskId you already hold and runs automatically.
+>
+> ⚠️ **But DO verify the browser process actually started** before pollling (Step 3c.1). The open command can fail silently (e.g. `msedge` not in PATH in Git Bash). If the browser never started, every poll will return `not_found`. Verify programmatically — never by asking the user.
+
+#### 3c.1 — Verify the browser process started (new, read this)
+
+After the open command, immediately verify the process exists — **do not ask the user**:
+
+```bash
+# Wait up to 3 seconds for the process to appear
+BROWSER_STARTED=false
+for i in 1 2 3; do
+  if tasklist /fi "IMAGENAME eq msedge.exe" 2>/dev/null | grep -q msedge; then
+    BROWSER_STARTED=true
+    echo "✅ browser process confirmed (msedge.exe)"
+    break
+  fi
+  sleep 1
+done
+```
+
+**If `BROWSER_STARTED=false`**: the `start` command failed silently. Try the full exe path explicitly:
+
+```bash
+# Retry with full path (Windows — adjust for chrome or other browsers)
+if [ -f "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" ]; then
+  "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" "{URL}"
+elif [ -f "/c/Program Files/Google/Chrome/Application/chrome.exe" ]; then
+  "/c/Program Files/Google/Chrome/Application/chrome.exe" "{URL}"
+fi
+
+# Re-check after retry
+sleep 2
+if tasklist /fi "IMAGENAME eq msedge.exe" 2>/dev/null | grep -q msedge; then
+  echo "✅ browser started via full path"
+  BROWSER_STARTED=true
+fi
+```
+
+**If still not running after full-path retry**: stop and tell the user "I tried to open the browser but the process did not start. Please open `{URL}` manually in the browser where the extension is installed, then reply 'done'."
+
+**If confirmed running**: proceed to Step 3d immediately. No user message needed.
 
 #### 3d. Poll until ready — **start immediately, start in the background**
 
@@ -362,11 +477,13 @@ When the user asks for **several scrapes at once** (e.g. "test all 5 scrapers"),
 ```
 1. TASK_ID = generate-task-id
 2. open browser page 1          (fire-and-forget)
-3. poll until ready             (background)
-4. download CSV 1
-5. TASK_ID = generate-task-id
-6. open browser page 2          ← do NOT wait for the user between tasks
-7. poll → download
+3. verify browser process       (Step 3c.1 — programmatic only)
+4. poll until ready             (background)
+5. download CSV 1
+6. TASK_ID = generate-task-id
+7. open browser page 2          ← do NOT wait for the user between tasks
+8. verify browser process       (same silent check)
+9. poll → download
 ... repeat ...
 ```
 
@@ -381,7 +498,8 @@ Key rules:
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `curl` returns nothing / connection refused | platform not reachable | confirm backend running (local) or site is up (production) |
-| status endpoint → `404 delivery_not_found` | wrong taskId | re-run 3a and regenerate |
+| status endpoint → `404 delivery_not_found` (transient, <60s) | wrong taskId | re-run 3a and regenerate |
+| `delivery_not_found` **persists >60s** | **browser never started** — the open command silently failed (exe not in PATH), so the page never created the task | Verify with `tasklist /fi "IMAGENAME eq msedge.exe"`; retry with full exe path (Step 3c.1); if still absent, ask user to open the URL manually |
 | status stays `processing` > 5 min | extension missing, browser not logged in, or page closed | confirm extension installed + logged in + page still open; page must stay open until scrape completes |
 | status endpoint never reaches `ready`, page shows "extension not ready" | extension not installed / not enabled | install extension from `{SITE_URL}/install`, reload page |
 | page shows "please log in" | not logged in | log in on `{SITE_URL}`, reopen page |
