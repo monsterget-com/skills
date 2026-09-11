@@ -96,13 +96,13 @@ MonsterGet はゲームを変えます：**収集はあなた自身のブラウ�
 
 ## 🔧 インストール方法
 
-```bash
-# Claude Code / Codex / Cline
-git clone https://github.com/rosstzc/monsterget.com-skills.git
-cp -r monsterget.com-skills/tiktok-scraper ~/.claude/skills/
+**コマンドを覚える必要はありません。** AI アシスタント（Claude Code / Codex / Cline など）を開いて、チャットでこう送るだけ：
 
-# その他のクライアント —— SKILL.md の内容をカスタム指示に貼り付け
-```
+> 💬 tiktok-scraper スキルをインストールして。https://github.com/rosstzc/monsterget.com-skills
+
+AI が自動でリポジトリをクローンし、セットアップしてくれます。
+
+**その他のクライアント** —— SKILL.md の内容をカスタム指示に貼り付けてください。
 
 ## 🧠 アーキテクチャ（実際に起きていること）
 

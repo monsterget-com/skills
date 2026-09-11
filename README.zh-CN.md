@@ -96,13 +96,13 @@ AI 负责全部编排：
 
 ## 🔧 安装方法
 
-```bash
-# Claude Code / Codex / Cline
-git clone https://github.com/rosstzc/monsterget.com-skills.git
-cp -r monsterget.com-skills/tiktok-scraper ~/.claude/skills/
+**不用记任何命令。** 打开你的 AI 助手（Claude Code / Codex / Cline 等），在对话框里发：
 
-# 其他客户端 —— 把 SKILL.md 内容粘贴到自定义指令中
-```
+> 💬 安装 skill tiktok-scraper，https://github.com/rosstzc/monsterget.com-skills
+
+AI 会自动克隆仓库并把它装好。
+
+**其他客户端** —— 把 SKILL.md 的内容粘贴到自定义指令中即可。
 
 ## 🧠 架构（实际发生了什么）
 

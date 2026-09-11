@@ -96,13 +96,13 @@ Después de eso, **cada extracción es instantánea.** Nunca más configuración
 
 ## 🔧 Cómo instalar
 
-```bash
-# Claude Code / Codex / Cline
-git clone https://github.com/rosstzc/monsterget.com-skills.git
-cp -r monsterget.com-skills/tiktok-scraper ~/.claude/skills/
+**Sin comandos que memorizar.** Abre tu asistente de IA (Claude Code / Codex / Cline…), y envía esto en el chat:
 
-# Otros clientes — pega el contenido de SKILL.md en instrucciones personalizadas
-```
+> 💬 Instala el skill tiktok-scraper desde https://github.com/rosstzc/monsterget.com-skills
+
+La IA clonará el repositorio y lo configurará por ti.
+
+**Otros clientes** — pega el contenido de SKILL.md en instrucciones personalizadas.
 
 ## 🧠 Arquitectura (lo que realmente sucede)
 

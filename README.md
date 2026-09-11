@@ -96,13 +96,13 @@ After that, **every scrape is instant.** No more setup. Ever.
 
 ## 🔧 How to Install
 
-```bash
-# Claude Code / Codex / Cline
-git clone https://github.com/rosstzc/monsterget.com-skills.git
-cp -r monsterget.com-skills/tiktok-scraper ~/.claude/skills/
+**No commands to memorize.** Open your AI assistant (Claude Code / Codex / Cline…), and send this in the chat:
 
-# Other clients — paste the SKILL.md contents into custom-instructions
-```
+> 💬 Install the tiktok-scraper skill from https://github.com/rosstzc/monsterget.com-skills
+
+The AI will clone the repo and set it up for you.
+
+**Other clients** — paste the contents of SKILL.md into your custom instructions.
 
 ## 🧠 Architecture (what actually happens)
 
