@@ -65,7 +65,26 @@ Username accepts `@name` or full profile URL (server normalizes).
 
 ## The full flow
 
-Follow these steps in order. Steps 0–2 are one-time setup; steps 3–4 are repeated per scrape.
+> 🚨 **首次使用四步法（严格按顺序执行）**
+>
+> ```
+> ┌─────────────────────────────────────────────────────────────────┐
+> │  首次请求爬虫                                                    │
+> │     │                                                            │
+> │     ├── Step 0: 打印首次准备清单 → 等用户说"好了"                 │
+> │     │    (安装扩展 + 登录 MonsterGet + 登录 TikTok)              │
+> │     │                                                            │
+> │     ├── Step 0.5: 自动检测循环                                   │
+> │     │     while (有未通过项):                                     │
+> │     │       检测所有项 → 全部通过? → Yes 跳出                     │
+> │     │       No → 列出未通过项 + 引导用户 → 等用户说"好了" → 重测  │
+> │     │                                                            │
+> │     ├── Step 1~3: 正常执行爬虫                                  │
+> │     │                                                            │
+> │     └── 首次爬虫成功后 → 标记 Preflight 已完成                    │
+> │         同 session 后续爬虫请求直接到 Step 1，跳过 Step 0/0.5     │
+> └─────────────────────────────────────────────────────────────────┘
+> ```
 
 ### ⚡ Automation contract (read this first)
 
@@ -80,47 +99,134 @@ Rules that make the AI fast instead of slow:
 3. **Polling already detects completion.** The poll loop exits the moment the status is `ready` (or `failed`). You do not need to ask the user whether the task finished — the status endpoint tells you.
 4. **Multiple scrapes run back-to-back, unattended.** When the user asks for several scrapes, run them in a loop: open → poll → download → open the next one. Do **not** stop and report back between tasks. See "Running multiple scrapes" below.
 5. **A finished task frees the concurrency slot.** The scrape window may stay open — it does not block the next task. Only a task still `pending`/`processing` counts against the limit.
-6. **Only speak to the user** when: you need a one-time setup step (Step 0/2), a scrape fails, or all requested scrapes are done and you're presenting results.
+6. **Only speak to the user** when: first-time setup (Step 0–0.5), a scrape fails, or all requested scrapes are done and you're presenting results.
 
-### Step 0 — Confirm the environment (first time only)
+### Step 0 — 🚀 首次准备清单（仅首次，等用户确认）
 
-Before anything, confirm with the user:
-- The platform backend is running (production `monsterget.com` is always on; for local, user must start `localhost:8000`).
-- **Which browser has the MonsterGet extension installed?** Chrome or Edge? Remember it for the session.
+> **💡 SKIP RULE**: 如果 `PREFLIGHT_DONE=true`（当前 session 已成功完成过首次爬虫），跳过 Step 0 / 0.5，直接到 Step 1。
 
-### Step 0.5 — Verify the browser is logged in (automatic)
+告诉用户需要完成 3 件事才开始：
 
-**Do this before the first scrape of a session.** A scrape silently stalls if the browser isn't logged in to `{SITE_URL}`. Don't wait 5 minutes to find out — ask the platform to check:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🚀 首次使用准备（仅需做一次）
 
-```bash
-# 1. Generate a taskId for the check
-LOGIN_ID=$(curl -s {BASE_URL}/api/agent/generate-task-id | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
+  请按以下顺序完成 3 步：
 
-# 2. Open the check page (fire-and-forget — same pattern as a scrape)
-start msedge "{SITE_URL}/login-check.html?auto=1&agentTaskId=$LOGIN_ID"
+  ① 安装 MonsterGet 浏览器扩展
+     打开 {SITE_URL}/install，按指引安装到 Edge 浏览器
 
-# 3. Poll for the result (zero-auth read; 404 = page hasn't reported yet)
-for i in $(seq 1 12); do
-  RESULT=$(curl -s "{BASE_URL}/api/agent/login-check/$LOGIN_ID")
-  echo "$RESULT" | grep -q '"logged_in"' && break
-  sleep 5
-done
-echo "$RESULT"
+  ② 登录 monsterget.com
+     打开 {SITE_URL}，注册/登录您的账号（或使用游客登录）
+
+  ③ 在浏览器中登录 TikTok
+     打开 https://www.tiktok.com，登录您的 TikTok 账号
+     （如果只使用非 TikTok 爬虫，此步可跳过）
+
+  完成后请回复"好了"，我来自动检测。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-| Result | Meaning | What to do |
-|--------|---------|------------|
-| `{"logged_in":true,"email":"..."}` | Browser is logged in | Continue to Step 1 |
-| `{"logged_in":false}` | Not logged in | Tell the user to log in at `{SITE_URL}`, then **re-run this step** |
-| `404 login_check_not_found` for 60s | Page never reported | Browser/extension problem — check extension is installed; see Step 2 |
+等待用户回复"好了"或确认完成后，进入 Step 0.5。
 
-> This check is **read-only and side-effect free** — it only reads the browser's existing login token and reports back. No account, no scrape, no credits.
->
-> Do **not** block on it when scraping already works. It matters most on first use, after a long gap, or when a scrape stalls at `processing`.
+### Step 0.5 — 🔄 自动检测循环（仅首次）
 
-### Step 1 — Preflight check (first time or when scraping fails)
+> 从 Step 0 收到用户确认后执行。**不单独调用**——必须紧跟 Step 0。
 
-Quickly probe whether the platform is reachable and whether the extension handshake works:
+检测三项，结果分为"通过/未通过"。**全部通过 → 告诉用户后跳 Step 1**。有未通过项 → 列出 + 引导 → 等用户"好了" → **只重检测未通过项** → 循环直至全部通过。
+
+#### 检测函数速查
+
+```bash
+# ① 扩展安装检测（shell 本地扫描，不需要开浏览器）
+_check_extension() {
+  EDGE_EXT=$(grep -l "MonsterGet" "$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Preferences" 2>/dev/null || echo "")
+  CHROME_EXT=$(grep -l "MonsterGet" "$HOME/AppData/Local/Google/Chrome/User Data/Default/Preferences" 2>/dev/null || echo "")
+  if [ -n "$EDGE_EXT" ] || [ -n "$CHROME_EXT" ]; then echo "ok"; else echo "missing"; fi
+}
+
+# ② MonsterGet 登录检测（需开浏览器页面回报）
+_check_monsterget_login() {
+  local MG_ID=$(curl -s "$BASE_URL/api/agent/generate-task-id" | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
+  start msedge "$SITE_URL/login-check.html?auto=1&agentTaskId=$MG_ID"
+  for i in $(seq 1 12); do
+    local R=$(curl -s "$BASE_URL/api/agent/login-check/$MG_ID")
+    echo "$R" | grep -q '"logged_in"' && { echo "$R"; return; }
+    sleep 5
+  done
+  echo '{"logged_in":false}'
+}
+
+# ③ 目标站（TikTok）登录检测（需开浏览器页面回报）
+_check_target_login() {
+  local T=$(curl -s -X POST "$BASE_URL/api/agent/login-check-target" \
+    -H "Content-Type: application/json" -d '{"target":"tiktok"}')
+  local TK_ID=$(echo "$T" | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
+  start msedge "$SITE_URL/login-check-target.html?auto=1&agentTaskId=$TK_ID&target=tiktok"
+  for i in $(seq 1 12); do
+    local R=$(curl -s "$BASE_URL/api/agent/login-check/$TK_ID")
+    echo "$R" | grep -q '"logged_in"' && { echo "$R"; return; }
+    sleep 5
+  done
+  echo '{"logged_in":false}'
+}
+```
+
+#### 循环逻辑
+
+```python
+# Python 伪代码 — 按此逻辑执行
+checks = {
+    "extension": {"fn": _check_extension, "guide": "打开 {SITE_URL}/install 安装扩展"},
+    "monsterget": {"fn": _check_monsterget_login, "guide": "打开 {SITE_URL} 登录"},
+    "target_tiktok": {"fn": _check_target_login, "guide": "在浏览器登录 https://www.tiktok.com"},
+}
+
+# 首次检测全部三项；后续循环只测 failed_items
+failed_items = list(checks.keys())
+
+while True:
+    current_fails = []
+    for name in failed_items:
+        c = checks[name]
+        result = shell(c["fn"])
+        if name == "extension":
+            if result == "missing": current_fails.append(name)
+        elif name == "monsterget":
+            if "false" in result: current_fails.append(name)
+        elif name == "target_tiktok":
+            if "false" in result: current_fails.append(name)
+
+    if not current_fails:
+        tell_user "✅ 全部检测通过！开始抓取..."
+        PREFLIGHT_DONE=true  # 记录 session 变量
+        break
+
+    # 有未通过的项
+    tell_user "以下项目未通过："
+    for name in current_fails:
+        tell_user f"  ❌ {name}: {checks[name]['guide']}"
+    tell_user "完成后请回复'好了'，我将重新检测未通过项。"
+
+    wait_user_reply_ok()
+    failed_items = current_fails  # 下一轮只测这些
+
+# 跳出循环后 → 进入 Step 1
+```
+
+#### 实际执行指引
+
+1. **先后顺序**：先跑 ①（扩展，最快，不需开浏览器）→ ②（MonsterGet 登录）→ ③（TikTok 登录）。
+   - 如果 ① 未通过，**阻止** ② 和 ③（扩展不在，后两项必失败），直接报"扩展未安装"。
+2. **轮询超时**：每项最长等 60 秒（12 次 × 5 秒）。超时视为失败。
+3. **用户等待**：每次检测开浏览器后立即进入轮询，不打断用户。
+4. **成功后标记**：`PREFLIGHT_DONE=true`，同 session 后续抓取**直接跳到 Step 1**，不再引导/检测。
+
+### Step 1 — 平台可达性检测
+
+> 💡 如果 `PREFLIGHT_DONE=true`，**这是本次抓取的第一个步骤**（跳过 Step 0/0.5）。
+
+Quickly probe whether the platform is reachable:
 
 ```bash
 # Reachability
@@ -132,17 +238,14 @@ curl -s -o /dev/null -w "%{http_code}" {BASE_URL}/api/agent/generate-task-id
 
 If scraping previously failed with an extension error, ask the user to verify the extension is installed and the browser is logged in (see Troubleshooting).
 
-### Step 2 — Register / install extension (only if not already done)
+### Step 2 — 首次准备（已合入 Step 0）
 
-The scrape must run in a browser that is **logged in to {SITE_URL} and has the extension installed**. AI cannot do this itself — guide the user:
-
-| Need | Action |
-|------|--------|
-| No account | Ask user to open `{SITE_URL}`, register and log in (guest login also supported) |
-| No extension | Ask user to open `{SITE_URL}/install` and follow install prompts (Chrome/Edge both supported) |
-| Not sure | Ask the user to confirm both are done before continuing |
-
-Wait for explicit user confirmation after each.
+> ✅ 首次引导 + 检测循环已在 Step 0 → 0.5 中完成。此处不再重复。
+>
+> 如果用户报告扩展缺失或登录问题，参考 Step 0 的引导清单：
+> - 安装扩展：`{SITE_URL}/install`
+> - 登录 MonsterGet：`{SITE_URL}`
+> - 登录目标站（TikTok）：`https://www.tiktok.com`
 
 ### Step 3 — Run a scrape (repeatable)
 
@@ -174,7 +277,7 @@ If count isn't given, use the type default (30 for tag/user search, 50 for video
 ⚠️ **URL must be wrapped in double quotes** — otherwise the shell treats `&` as a command separator and truncates the query.
 
 ```bash
-# Edge (Windows) — or substitute chrome / open / xdg-open per Step 0 choice
+# Edge (Windows) — or substitute chrome / open / xdg-open (which browser has the extension)
 start msedge "https://monsterget.com/tiktok-search-video?auto=1&agentTaskId=$TASK_ID&query=mike&count=10"
 ```
 
@@ -271,6 +374,7 @@ Key rules:
 | status stays `processing` > 5 min | extension missing, browser not logged in, or page closed | confirm extension installed + logged in + page still open; page must stay open until scrape completes |
 | status endpoint never reaches `ready`, page shows "extension not ready" | extension not installed / not enabled | install extension from `{SITE_URL}/install`, reload page |
 | page shows "please log in" | not logged in | log in on `{SITE_URL}`, reopen page |
+| Step 0.5 检测 ③ TikTok 未通过 | 浏览器未登录 TikTok | 在 TikTok 登录后回复"好了"，AI 重测 |
 | download → `409 not_ready` | data not ready | keep polling |
 | download → `409 buffer_unavailable` | buffer cleared by TTL race | retry a few seconds |
 | download → `410 already_downloaded` | already fetched once | do NOT retry; regenerate a taskId and run a new scrape |
