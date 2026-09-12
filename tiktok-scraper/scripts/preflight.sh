@@ -7,8 +7,10 @@
 #
 # Usage:  bash preflight.sh
 # Writes: state.json (extension, platform_reachable, monsterget_login, tiktok_login, checked_at)
-# Stdout: {"extension":true,"platform_reachable":true,"monsterget_login":true,
-#          "tiktok_login":true,"browser":"edge","os":"windows"}
+# Stdout: {"ready":true,"next":"","extension":true,"platform_reachable":true,
+#          "monsterget_login":true,"tiktok_login":true,"browser":"edge","os":"windows"}
+#   ready = all 3 user-facing steps pass   next = first failing step, "" when ready
+#   next is one of: extension | monsterget_login | tiktok_login | platform_reachable
 # Exit:   0 = all checks pass, 1 = at least one failed (stdout says which)
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,7 +41,23 @@ state_set monsterget_login "$MG"
 state_set tiktok_login "$TK"
 state_set checked_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-printf '{"extension":%s,"platform_reachable":%s,"monsterget_login":%s,"tiktok_login":%s,"browser":"%s","os":"%s"}\n' \
-  "$EXT" "$REACH" "$MG" "$TK" "$(state_get browser)" "$(detect_os)"
+# `next` = the first step the agent must guide the user through, in ①→②→③ order.
+# Empty string means all three pass and the user can scrape right away.
+NEXT=""
+if [ "$EXT" != true ]; then
+  NEXT="extension"
+elif [ "$MG" != true ]; then
+  NEXT="monsterget_login"
+elif [ "$TK" != true ]; then
+  NEXT="tiktok_login"
+elif [ "$REACH" != true ]; then
+  NEXT="platform_reachable"
+fi
 
-[ "$EXT" = true ] && [ "$REACH" = true ] && [ "$MG" = true ] && [ "$TK" = true ]
+READY=false
+[ -z "$NEXT" ] && READY=true
+
+printf '{"ready":%s,"next":"%s","extension":%s,"platform_reachable":%s,"monsterget_login":%s,"tiktok_login":%s,"browser":"%s","os":"%s"}\n' \
+  "$READY" "$NEXT" "$EXT" "$REACH" "$MG" "$TK" "$(state_get browser)" "$(detect_os)"
+
+[ -z "$NEXT" ]

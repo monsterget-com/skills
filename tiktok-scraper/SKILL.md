@@ -330,11 +330,17 @@ All three ✅ (from pre-check or guidance) → `PREFLIGHT_DONE=true` → tell th
 
 #### Completion
 
-After all three steps pass, tell the user (in their language):
+After all three steps pass, tell the user (in their language) **and offer example prompts** so they know what to say next:
 
-> ✅ 全部准备完成！开始抓取...
+> ✅ 3 项全部通过，可以开始抓取了！
+> 试试下面任意一句：
+> - 抓取关于 "mike tyson" 的 TikTok 视频 50 条
+> - 找出做 "beauty" 内容的 TikTok 创作者 30 个
+> - 抓取 #kpop 标签下的视频 30 条
+> - 抓取 @tiktok 这位创作者的全部视频
+> - 抓取 @mike、@jenifer、@tiktok 的主页数据
 
-Then set `PREFLIGHT_DONE=true` and go to Step 1. Subsequent scrapes in this session skip Steps 0/0.6 entirely.
+(Translate the prompts to the user's language.) Then set `PREFLIGHT_DONE=true` and go to Step 1. Subsequent scrapes in this session skip Steps 0/0.6 entirely.
 
 The check scripts have already written the results to `~/.monsterget/state.json` (including `checked_at`) — no manual write needed.
 
@@ -353,14 +359,14 @@ One command does the whole silent preflight — no user interaction, no question
 
 ```bash
 bash "$SCRIPTS/preflight.sh"
-# → {"extension":true,"platform_reachable":true,"monsterget_login":true,
-#    "tiktok_login":true,"browser":"edge","os":"windows"}
+# → {"ready":false,"next":"extension","extension":true,"platform_reachable":true,
+#    "monsterget_login":true,"tiktok_login":true,"browser":"edge","os":"windows"}
 ```
 
 It runs, in order: `detect-browser.sh` → platform reachability probe → `check-login.sh monsterget` → `check-login.sh tiktok` (short 3×5s probes).
 
-- **Exit 0 (all true)** → set `PREFLIGHT_DONE=true`, proceed to Step 1.
-- **Exit 1** → read which field is `false` and escalate to the **interactive Step 0 flow, starting at that step's TELL**. Wait for the user's "done", then re-verify with that single step's script — do not re-run the whole preflight.
+- **Exit 0 (`"ready":true`)** → set `PREFLIGHT_DONE=true`, proceed to Step 1.
+- **Exit 1** → read `next` (the first failing step) and escalate to the **interactive Step 0 flow, starting at that step's TELL**. Wait for the user's "done", then re-verify with that single step's script — do not re-run the whole preflight.
 
 | Failed field | Escalate to |
 |--------------|-------------|

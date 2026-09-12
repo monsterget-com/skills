@@ -18,21 +18,51 @@ AI generates taskId ──▶ opens browser URL ──▶ page creates task, ext
 
 No server-side TikTok scraping. The scrape runs inside the user's real TikTok session (logged in, with the MonsterGet extension). That's what keeps accounts safe from bans.
 
-## One-time setup (user, ~2 minutes, done once)
+## First-run flow (run this right after install)
 
-1. Register a free account at [monsterget.com](https://monsterget.com)
-2. Install the browser extension at [monsterget.com/install](https://monsterget.com/install) (Chrome or Edge — pick one browser and use it for everything)
-3. Log in to [monsterget.com](https://monsterget.com) and [www.tiktok.com](https://www.tiktok.com) in that same browser
+The user needs 3 things. Do NOT present them as a bullet list they read on their own. Instead:
 
-**Same-browser rule**: the extension, MonsterGet login, and TikTok login must all live in the same browser. Never let the user spread them.
+**a. Silent pre-check.** Run `preflight.sh` once to see what's already done:
+```bash
+bash ~/.monsterget/skill/scripts/preflight.sh
+```
+
+Output fields: `ready` (all done), `next` (first failing step, or `""`), `extension`, `monsterget_login`, `tiktok_login`, `browser`.
+
+**b. Show the 3 prerequisites with links**, noting what's already ✅:
+
+> 用这个 skill 前需要准备 3 件事（都用同一个浏览器：**Edge 或 Chrome**）：
+> ① 安装 MonsterGet 扩展 → https://monsterget.com/install
+> ② 登录 monsterget.com → https://monsterget.com
+> ③ 登录 TikTok → https://www.tiktok.com
+
+**c. Guide one step at a time, starting at `next`.** Per-step protocol: TELL (what to do + URL + which browser) → WAIT for "done" → VERIFY with script → REPORT ✅/❌. Loop until pass, then next. Never advance past a failed step.
+
+| Step | Verify with | URL |
+|------|-------------|-----|
+| ① Extension | `bash ~/.monsterget/skill/scripts/detect-browser.sh` → `extension:true` | https://monsterget.com/install |
+| ② Login MonsterGet | `bash ~/.monsterget/skill/scripts/check-login.sh monsterget` | https://monsterget.com |
+| ③ Login TikTok | `bash ~/.monsterget/skill/scripts/check-login.sh tiktok` | https://www.tiktok.com |
+
+If the user says "已装好 / already done", still run the checks. Never trust verbal claims alone.
+
+**d. When all three pass → report + offer example prompts:**
+
+> ✅ 3 项全部通过，可以开始抓取了！
+> 试试下面任意一句：
+> - 抓取关于 "mike tyson" 的 TikTok 视频 50 条
+> - 找出做 "beauty" 内容的 TikTok 创作者 30 个
+> - 抓取 #kpop 标签下的视频 30 条
+> - 抓取 @tiktok 这位创作者的全部视频
+> - 抓取 @mike、@jenifer、@tiktok 的主页数据
 
 ## Cold-start contract
 
 `PREFLIGHT_DONE` is `false` at the start of every new conversation. Memory and prior sessions do **not** set it. You must verify programmatically before scraping.
 
-Two entry paths:
-- **No prior knowledge / user says not set up** → interactive Step 0 (guide each missing item one at a time: tell → wait for "done" → verify → report; never present a checklist)
-- **Setup presumed already done** → silent preflight (below)
+Two entry paths, both ending in verification:
+- **First run / user says not set up** → the **First-run flow** above (guide each missing item one at a time: tell → wait for "done" → verify → report; never present a checklist)
+- **Setup presumed already done** → run `preflight.sh` silently. If `ready:true`, scrape. If `ready:false`, fall back to the First-run flow starting at `next`.
 
 ## Scripts
 
@@ -59,25 +89,11 @@ Each script prints one JSON object to stdout and exits 0 on success / 1 on failu
 
 ```bash
 bash ~/.monsterget/skill/scripts/preflight.sh
-# → {"extension":true,"platform_reachable":true,"monsterget_login":true,"tiktok_login":true,"browser":"edge","os":"windows"}
+# → {"ready":false,"next":"extension","extension":true,"platform_reachable":true,
+#    "monsterget_login":true,"tiktok_login":true,"browser":"edge","os":"windows"}
 ```
 
-If it fails, find which field is `false` and guide the user through only that item (see interactive flow below). Re-verify after the user says "done". Never advance past a failed item.
-
-### Interactive Step 0 (per-step protocol)
-
-For each unfinished step (in order ①→②→③):
-1. **TELL** one short message: what to do + the full clickable URL + which browser
-2. **WAIT** for the user to say "done"
-3. **VERIFY** programmatically — run the check script; do NOT ask "are you sure?"
-4. **REPORT** ✅ step N done / ❌ step N failed with fix instructions
-5. If ❌ → re-guide → wait → re-verify. Loop until ✅. Do NOT advance.
-
-| Step | Verify script | URL |
-|------|---------------|-----|
-| ① Install extension | `detect-browser.sh` → `extension:true` | https://monsterget.com/install |
-| ② Log in to MonsterGet | `check-login.sh monsterget` | https://monsterget.com |
-| ③ Log in to TikTok | `check-login.sh tiktok` | https://www.tiktok.com |
+When `ready` is `false`, read `next` and follow the **First-run flow** above from that step. `next` is empty when `ready` is `true` — the user can scrape immediately.
 
 ### Scrape
 

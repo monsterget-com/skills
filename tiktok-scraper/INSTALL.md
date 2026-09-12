@@ -58,12 +58,14 @@ It should print JSON with your current setup status. If `extension: false`, you 
 
 ## First-time user setup (~2 minutes, done once)
 
-After installing the skill, the user needs:
+The moment the skill is installed, the AI **immediately guides** you through the 3 steps — one at a time, verifying each before moving on. You will see this in chat:
 
 | Step | What to do | URL |
 |------|-----------|-----|
-| 1 | Register a free account | [monsterget.com](https://monsterget.com) |
-| 2 | Install the browser extension | [monsterget.com/install](https://monsterget.com/install) |
-| 3 | Log in to TikTok | [tiktok.com](https://www.tiktok.com) |
+| ① | Install the MonsterGet browser extension (Edge or Chrome) | [monsterget.com/install](https://monsterget.com/install) |
+| ② | Log in to monsterget.com (same browser) | [monsterget.com](https://monsterget.com) |
+| ③ | Log in to TikTok (same browser) | [tiktok.com](https://www.tiktok.com) |
 
-The AI will guide you through these interactively when you first ask it to scrape data.
+All 3 must pass the AI's automatic checks before it lets you scrape. When they do, the AI offers example prompts — e.g. "抓取关于 'mike tyson' 的 TikTok 视频 50 条".
+
+If your client just printed this table as static text instead of walking you through it step by step, that's a weak client — the checks still protect you, but you can say "检查一下这 3 项" to force the programmatic verification.
