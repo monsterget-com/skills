@@ -81,12 +81,34 @@ Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
 
 | Script | What it does | Exit code |
 |--------|--------------|-----------|
-| `detect-browser.sh` | Finds which browser holds the MonsterGet extension. Writes `browser`, `browser_exe`, `browser_fullpath`, `os`, `extension` to state. | 0 = found, 1 = not found |
+| `detect-browser.sh` | Finds **every** browser holding the MonsterGet extension. Writes `browser`, `browsers`, `browser_exe`, `browser_fullpath`, `os`, `extension`, `multiple`, `need_choice` to state. | 0 = found, 1 = not found |
+| `choose-browser.sh <edge\|chrome>` | Saves the user's browser choice (`browser_pref`) — call only after asking, when `need_choice:true`. | 0 = saved, 1 = refused |
 | `check-login.sh <monsterget\|tiktok>` | Opens the platform's login-check page, polls up to 60s (or `MONSTERGET_POLLS` × 5s). Writes the login result to state. | 0 = logged in, 1 = not |
-| `preflight.sh` | Silent full preflight: extension → platform reachability → both logins. Short 3×5s login probes. | 0 = all pass, 1 = something failed |
+| `preflight.sh` | Silent full preflight: extension → browser choice → platform reachability → both logins. Short 3×5s login probes. | 0 = all pass, 1 = something failed |
 | `run-scrape.sh <pagePath> <param> <value> [count]` | End-to-end scrape: taskId → open browser → verify process → poll → download CSV. | 0 = CSV downloaded, 1 = failed |
 
 **Every script prints exactly one JSON object to stdout.** Parse that — it is the authoritative result. Do not ask the user what happened.
+
+### 🌐 Browser selection (which browser to use)
+
+`detect-browser.sh` scans **both** Edge and Chrome and reports every browser that has the extension:
+
+| Field | Meaning |
+|-------|---------|
+| `browser` | The chosen browser (`edge`/`chrome`/`none`) |
+| `browsers` | **All** browsers that have the extension, e.g. `["edge","chrome"]` |
+| `multiple` | `true` when more than one browser has the extension |
+| `chosen_by` | `preference` (user already picked) \| `default` (script picked the first) \| `only_one` |
+| `need_choice` | `true` → **you must ask the user which browser to use** |
+
+Rules:
+
+1. **One browser has the extension** → use it, no question asked.
+2. **Several have it and the user already chose** (`chosen_by:"preference"`) → reuse the saved choice (`browser_pref` in state). No question.
+3. **Several have it and no choice saved** (`need_choice:true`) → ask the user **once**, in their language: *"两个浏览器都装了 MonsterGet 扩展，你想用哪个？Edge 还是 Chrome？"* Then run `bash "$SCRIPTS/choose-browser.sh" edge` (or `chrome`) and continue.
+4. **Never guess in this case.** Both `preflight.sh` (`next:"choose_browser"`) and `run-scrape.sh` (`status:"need_browser_choice"`) refuse to proceed — that's the gate. Asking is required, not optional.
+
+The choice is persisted, so the question is asked **at most once per machine**, not every session.
 
 **Why scripts instead of inline shell:** each script is self-contained (reads `state.json` → does work → writes `state.json`), so nothing depends on shell variables surviving between tool calls. And they branch on the OS, so they work on Windows (Git Bash), macOS, and Linux alike.
 
@@ -216,7 +238,8 @@ bash "$SCRIPTS/preflight.sh"
 ```
 
 - `"ready":true` → all done, jump to **Completion**.
-- `"ready":false` → show the status table, then guide only ❌ items one at a time, starting at `next`.
+- `"next":"choose_browser"` → **both browsers have the extension and no choice is saved.** Ask the user which to use, run `bash "$SCRIPTS/choose-browser.sh" edge` (or `chrome`), then **re-run `preflight.sh`**. Never guess here — the login checks would run against the wrong browser.
+- `"ready":false` otherwise → show the status table, then guide only ❌ items one at a time, starting at `next`.
 
 Show the status with ✅/❌ (naming the browser):
 
@@ -358,12 +381,13 @@ It runs, in order: `detect-browser.sh` → platform reachability probe → `chec
 - **Exit 0 (`"ready":true`)** → set `PREFLIGHT_DONE=true`, proceed to Step 1.
 - **Exit 1** → read `next` (the first failing step) and escalate to the **interactive Step 0 flow, starting at that step's TELL**. Wait for the user's "done", then re-verify with that single step's script — do not re-run the whole preflight.
 
-| Failed field | Escalate to |
+| `next` value | Escalate to |
 |--------------|-------------|
-| `extension: false` | Step 0 ① |
-| `platform_reachable: false` | Tell the user the platform isn't reachable (network/region). Give them the URL to check. Stop. |
-| `monsterget_login: false` | Step 0 ② |
-| `tiktok_login: false` | Step 0 ③ |
+| `extension` | Step 0 ① |
+| `choose_browser` | Ask which browser to use → `choose-browser.sh <edge\|chrome>` → re-run `preflight.sh` |
+| `monsterget_login` | Step 0 ② |
+| `tiktok_login` | Step 0 ③ |
+| `platform_reachable` | Tell the user the platform isn't reachable (network/region). Give them the URL to check. Stop. |
 
 ### Step 1 — Platform reachability check
 

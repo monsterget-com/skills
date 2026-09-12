@@ -45,7 +45,7 @@ Say in your chat:
 
    **b. WAIT** for the user to say they're ready. Do not run checks before this — the user needs the guide first.
 
-   **c. VERIFY everything** with the silent pre-check: `bash ~/.monsterget/skill/scripts/preflight.sh`. It returns `{"ready":false,"next":"extension",...}` — `next` is the FIRST step the user still has to do; `ready:true` means all pass.
+   **c. VERIFY everything** with the silent pre-check: `bash ~/.monsterget/skill/scripts/preflight.sh`. It returns `{"ready":false,"next":"extension",...}` — `next` is the FIRST step the user still has to do; `ready:true` means all pass. If `next:"choose_browser"`, both browsers have the extension — ask the user which to use, run `choose-browser.sh edge|chrome`, then re-run `preflight.sh`.
 
    **d. Guide only what's ❌, one step at a time, starting at `next`.** TELL → WAIT for "done" → VERIFY with `detect-browser.sh` / `check-login.sh` → REPORT ✅/❌. Loop until that step passes, then the next. Never advance past a failed step. (Same protocol as SKILL.md Step 0.)
 

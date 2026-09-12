@@ -64,52 +64,119 @@ state_set() {
 }
 
 # ---------------------------------------------------------------------------
-# Browser detection — which browser has the MonsterGet extension installed.
-# Sets globals: BROWSER, BROWSER_EXE, BROWSER_FULLPATH
-#   BROWSER=edge|chrome|none
+# Browser detection — which browser(s) have the MonsterGet extension installed.
+# Sets globals:
+#   BROWSERS         space-separated list of browsers that HAVE the extension
+#   BROWSER          the chosen one (edge|chrome|none)
+#   BROWSER_EXE      process/exe name for the chosen one
+#   BROWSER_FULLPATH absolute path to the chosen one's binary (may be empty)
+#   CHOSEN_BY        preference | default | only_one | none
+#
+# Selection order:
+#   1. the user's saved choice (state key `browser_pref`), if that browser still
+#      has the extension,
+#   2. otherwise the first browser found,
+#   3. the caller may prompt the user when BROWSERS lists more than one and
+#      CHOSEN_BY is `default` (see choose-browser.sh).
 # ---------------------------------------------------------------------------
-BROWSER="none"; BROWSER_EXE=""; BROWSER_FULLPATH=""
+BROWSER="none"; BROWSER_EXE=""; BROWSER_FULLPATH=""; BROWSERS=""; CHOSEN_BY="none"
 
-_try_browser() {
-  local name="$1" pref="$2" full="$3" exe="$4"
-  if [ -f "$pref" ] && grep -q "MonsterGet" "$pref" 2>/dev/null; then
-    BROWSER="$name"; BROWSER_EXE="$exe"; BROWSER_FULLPATH="$full"; return 0
-  fi
-  return 1
+# _browser_conf <name> → "<preferences_path>|<full_binary_path>|<exe_name>"
+_browser_conf() {
+  case "$(detect_os):$1" in
+    windows:edge)
+      printf '%s|%s|%s' \
+        "$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Preferences" \
+        "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" "msedge" ;;
+    windows:chrome)
+      printf '%s|%s|%s' \
+        "$HOME/AppData/Local/Google/Chrome/User Data/Default/Preferences" \
+        "/c/Program Files/Google/Chrome/Application/chrome.exe" "chrome" ;;
+    macos:edge)
+      printf '%s|%s|%s' \
+        "$HOME/Library/Application Support/Microsoft Edge/Default/Preferences" \
+        "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" "Microsoft Edge" ;;
+    macos:chrome)
+      printf '%s|%s|%s' \
+        "$HOME/Library/Application Support/Google/Chrome/Default/Preferences" \
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" "Google Chrome" ;;
+    linux:edge)
+      printf '%s|%s|%s' \
+        "$HOME/.config/microsoft-edge/Default/Preferences" "" "microsoft-edge" ;;
+    linux:chrome)
+      printf '%s|%s|%s' \
+        "$HOME/.config/google-chrome/Default/Preferences" "" "google-chrome" ;;
+    *) return 1 ;;
+  esac
 }
 
+# _probe_browser <name> → 0 if that browser has the MonsterGet extension
+_probe_browser() {
+  local pref
+  pref="$(_browser_conf "$1" | cut -d'|' -f1)"
+  [ -n "$pref" ] && [ -f "$pref" ] && grep -q "MonsterGet" "$pref" 2>/dev/null
+}
+
+# _select_browser <name> → point the globals at that browser
+_select_browser() {
+  local conf
+  conf="$(_browser_conf "$1")" || return 1
+  BROWSER="$1"
+  BROWSER_FULLPATH="$(printf '%s' "$conf" | cut -d'|' -f2)"
+  BROWSER_EXE="$(printf '%s' "$conf" | cut -d'|' -f3)"
+}
+
+# detect_browser — returns 0 if at least one browser has the extension
 detect_browser() {
-  BROWSER="none"; BROWSER_EXE=""; BROWSER_FULLPATH=""
-  case "$(detect_os)" in
-    windows)
-      _try_browser edge   "$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Preferences" "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" msedge ||
-      _try_browser chrome "$HOME/AppData/Local/Google/Chrome/User Data/Default/Preferences" "/c/Program Files/Google/Chrome/Application/chrome.exe" chrome
+  BROWSER="none"; BROWSER_EXE=""; BROWSER_FULLPATH=""; BROWSERS=""; CHOSEN_BY="none"
+  local n found=""
+  for n in edge chrome; do
+    _probe_browser "$n" && found="$found $n"
+  done
+  BROWSERS="${found# }"
+  [ -z "$BROWSERS" ] && return 1
+
+  local pref
+  pref="$(state_get browser_pref)"
+  case " $BROWSERS " in
+    *" $pref "*)  _select_browser "$pref"; CHOSEN_BY="preference" ;;
+    *)
+      if [ "$BROWSERS" = "edge" ] || [ "$BROWSERS" = "chrome" ]; then
+        CHOSEN_BY="only_one"
+      else
+        CHOSEN_BY="default"
+      fi
+      _select_browser "${BROWSERS%% *}"
       ;;
-    macos)
-      _try_browser edge   "$HOME/Library/Application Support/Microsoft Edge/Default/Preferences" "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" "Microsoft Edge" ||
-      _try_browser chrome "$HOME/Library/Application Support/Google/Chrome/Default/Preferences" "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" "Google Chrome"
-      ;;
-    linux)
-      _try_browser edge   "$HOME/.config/microsoft-edge/Default/Preferences" "" "microsoft-edge" ||
-      _try_browser chrome "$HOME/.config/google-chrome/Default/Preferences" "" "google-chrome"
-      ;;
-    *) : ;;
   esac
+  return 0
+}
+
+# browser_choices_json — the detected browsers as a JSON array literal
+browser_choices_json() {
+  local n out=""
+  for n in $BROWSERS; do
+    [ -n "$out" ] && out="$out,"
+    out="$out\"$n\""
+  done
+  printf '[%s]' "$out"
 }
 
 # ---------------------------------------------------------------------------
 # Browser launch & process verification
 # ---------------------------------------------------------------------------
-# open_url <url> — fire-and-forget; exit 0 if a launch attempt succeeded
+# open_url <url> — open in the EXTENSION browser, not the system default.
+# Windows: `cmd /c start` would open the DEFAULT browser — never use it first,
+# or a URL meant for the extension browser ends up in the wrong one.
 open_url() {
   local url="$1"
   case "$(detect_os)" in
     windows)
+      [ -n "$BROWSER_FULLPATH" ] && [ -f "$BROWSER_FULLPATH" ] && "$BROWSER_FULLPATH" "$url" >/dev/null 2>&1 && return 0
+      [ -n "$BROWSER_EXE" ] && command -v "$BROWSER_EXE" >/dev/null 2>&1 && "$BROWSER_EXE" "$url" >/dev/null 2>&1 && return 0
       if command -v cmd >/dev/null 2>&1; then
         MSYS_NO_PATHCONV=1 cmd /c start "" "$url" >/dev/null 2>&1 && return 0
       fi
-      [ -n "$BROWSER_FULLPATH" ] && [ -f "$BROWSER_FULLPATH" ] && "$BROWSER_FULLPATH" "$url" >/dev/null 2>&1 && return 0
-      [ -n "$BROWSER_EXE" ] && command -v "$BROWSER_EXE" >/dev/null 2>&1 && "$BROWSER_EXE" "$url" >/dev/null 2>&1 && return 0
       return 1
       ;;
     macos)

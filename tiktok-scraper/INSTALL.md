@@ -24,8 +24,8 @@ That's it. The actual scripts stay at `~/.monsterget/skill/scripts/` so all your
 ```bash
 # Step 1 — clone and copy the runtime (once, shared by all clients)
 git clone https://github.com/rosstzc/monsterget.com-skills /tmp/mgs
-mkdir -p ~/.monsterget
-cp -r /tmp/mgs/tiktok-scraper ~/.monsterget/skill
+mkdir -p ~/.monsterget/skill
+cp -r /tmp/mgs/tiktok-scraper/. ~/.monsterget/skill/
 
 # Step 2 — point your client at it (pick one)
 # Claude Code (native, no pointer needed)

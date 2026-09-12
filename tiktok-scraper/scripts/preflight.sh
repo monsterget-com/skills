@@ -22,15 +22,22 @@ bash "$SCRIPT_DIR/detect-browser.sh" >/dev/null 2>&1
 EXT=false
 [ "$(state_get browser)" != "none" ] && EXT=true
 
+# Several browsers have the extension and the user hasn't picked one. The login
+# checks below would run against an arbitrary guess and report false negatives,
+# so skip them — the agent must ask the user first (choose-browser.sh).
+NEED_CHOICE=false
+[ "$EXT" = true ] && [ "$(state_get need_choice)" = true ] && NEED_CHOICE=true
+
 # ② platform reachability
 HTTP="$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BASE_URL/api/agent/generate-task-id" 2>/dev/null)"
 REACH=false
 [ "$HTTP" = "200" ] && REACH=true
 
-# ③ logins — only meaningful when the extension exists and the platform answers
+# ③ logins — only meaningful when the extension exists, the browser is settled,
+#    and the platform answers
 MG=false
 TK=false
-if [ "$EXT" = true ] && [ "$REACH" = true ]; then
+if [ "$EXT" = true ] && [ "$REACH" = true ] && [ "$NEED_CHOICE" = false ]; then
   MONSTERGET_POLLS=3 bash "$SCRIPT_DIR/check-login.sh" monsterget >/dev/null 2>&1 && MG=true
   MONSTERGET_POLLS=3 bash "$SCRIPT_DIR/check-login.sh" tiktok    >/dev/null 2>&1 && TK=true
 fi
@@ -41,11 +48,13 @@ state_set monsterget_login "$MG"
 state_set tiktok_login "$TK"
 state_set checked_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-# `next` = the first step the agent must guide the user through, in ①→②→③ order.
-# Empty string means all three pass and the user can scrape right away.
+# `next` = the first step the agent must guide the user through. Empty string
+# means everything passed and the user can scrape right away.
 NEXT=""
 if [ "$EXT" != true ]; then
   NEXT="extension"
+elif [ "$NEED_CHOICE" = true ]; then
+  NEXT="choose_browser"
 elif [ "$MG" != true ]; then
   NEXT="monsterget_login"
 elif [ "$TK" != true ]; then
@@ -57,7 +66,11 @@ fi
 READY=false
 [ -z "$NEXT" ] && READY=true
 
-printf '{"ready":%s,"next":"%s","extension":%s,"platform_reachable":%s,"monsterget_login":%s,"tiktok_login":%s,"browser":"%s","os":"%s"}\n' \
-  "$READY" "$NEXT" "$EXT" "$REACH" "$MG" "$TK" "$(state_get browser)" "$(detect_os)"
+BROWSER_NAME="$(state_get browser)"
+BROWSERS_LIST="$(state_get browsers)"
+
+printf '{"ready":%s,"next":"%s","extension":%s,"platform_reachable":%s,"monsterget_login":%s,"tiktok_login":%s,"browser":"%s","browsers":"%s","need_choice":%s,"os":"%s"}\n' \
+  "$READY" "$NEXT" "$EXT" "$REACH" "$MG" "$TK" \
+  "$BROWSER_NAME" "$BROWSERS_LIST" "$NEED_CHOICE" "$(detect_os)"
 
 [ -z "$NEXT" ]

@@ -38,10 +38,11 @@ The user needs 3 things. Show them the complete guide FIRST, then verify.
 bash ~/.monsterget/skill/scripts/preflight.sh
 ```
 
-Output fields: `ready` (all done), `next` (first failing step, or `""`), `extension`, `monsterget_login`, `tiktok_login`, `browser`.
+Output fields: `ready` (all done), `next` (first failing step, or `""`), `extension`, `monsterget_login`, `tiktok_login`, `browser`, `browsers`, `need_choice`.
 
 - `ready:true` → jump to **d**.
-- `ready:false` → show the status with ✅/❌ per item, then guide **only** the ❌ items one at a time, starting at `next`. Per-step protocol: TELL (what to do + URL + which browser) → WAIT for "done" → VERIFY with that step's script → REPORT ✅/❌. Loop until pass, then next. Never advance past a failed step.
+- `next:"choose_browser"` (`need_choice:true`) → **both browsers have the extension and no choice is saved.** Ask the user which to use, save it: `bash ~/.monsterget/skill/scripts/choose-browser.sh edge` (or `chrome`), then **re-run preflight.sh**. Never guess — the login checks would run against the wrong browser.
+- `ready:false` otherwise → show the status with ✅/❌ per item, then guide **only** the ❌ items one at a time, starting at `next`. Per-step protocol: TELL (what to do + URL + which browser) → WAIT for "done" → VERIFY with that step's script → REPORT ✅/❌. Loop until pass, then next. Never advance past a failed step.
 
 | Step | Verify with | URL |
 |------|-------------|-----|
@@ -85,10 +86,15 @@ Each script prints one JSON object to stdout and exits 0 on success / 1 on failu
 
 | Script | Purpose |
 |--------|---------|
-| `preflight.sh` | Full silent check — extension, platform reachability, both logins. Use when setup is presumed done. |
-| `detect-browser.sh` | Extension presence + which browser (edge/chrome/none). Use for step ①. |
+| `preflight.sh` | Full silent check — extension, browser choice, platform reachability, both logins. |
+| `detect-browser.sh` | Which browser(s) have the extension. Reports `browsers`, `multiple`, `need_choice`. Use for step ①. |
+| `choose-browser.sh <edge\|chrome>` | Save the user's browser choice when several have the extension (`need_choice:true`). |
 | `check-login.sh <target>` | Open login-check page, poll for logged-in status. `target=monsterget` or `tiktok`. Use for steps ②/③. |
 | `run-scrape.sh <pagePath> <param> <value> [count]` | Full scrape: generate taskId, open browser, verify process, poll, download CSV. |
+
+### Browser choice
+
+`detect-browser.sh` scans both Edge and Chrome. If only one has the extension, it is used silently. If **both** have it and the user hasn't chosen before (`need_choice:true`), ask once — *"两个浏览器都装了 MonsterGet 扩展，你想用哪个？"* — then save it with `choose-browser.sh`. The choice persists, so it is asked at most once per machine. `run-scrape.sh` refuses with `status:"need_browser_choice"` until a choice is saved.
 
 ### Preflight
 

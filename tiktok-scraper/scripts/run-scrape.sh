@@ -34,6 +34,14 @@ if [ "$BROWSER" = "none" ]; then
   exit 1
 fi
 
+# More than one browser has the extension and the user never chose one.
+# Do NOT guess — make the caller ask (choose-browser.sh) and re-run.
+if [ "$CHOSEN_BY" = "default" ]; then
+  printf '{"status":"need_browser_choice","browsers":%s,"error":"more than one browser has the MonsterGet extension — ask the user which to use, save it with choose-browser.sh, then re-run"}\n' \
+    "$(browser_choices_json)"
+  exit 1
+fi
+
 TASK_ID="$(generate_task_id)"
 if [ -z "$TASK_ID" ]; then
   echo '{"status":"failed","error":"platform unreachable"}'
