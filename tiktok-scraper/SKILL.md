@@ -185,60 +185,50 @@ Rules that make the AI fast instead of slow:
 5. **A finished task frees the concurrency slot.** The scrape window may stay open — it does not block the next task. Only a task still `pending`/`processing` counts against the limit.
 6. **Only speak to the user** when: first-time setup (Step 0), a scrape fails, or all requested scrapes are done and you're presenting results.
 
-### Step 0 — 🚀 First-time setup: pre-check first, then guide what's missing (Path A only)
+### Step 0 — 🚀 First-time setup: show the guide first, then verify (Path A only)
 
 > **💡 SKIP RULE**: Step 0 runs only on **Path A** (no prior knowledge, or the user says setup isn't done). If you have prior knowledge the setup is already complete, go **Path B** — Step 0.6 only, no interactive flow. Once `PREFLIGHT_DONE=true` in this session, skip Steps 0/0.6 entirely for later scrapes.
 
-> ⛔ **Setup is an interactive flow, NOT a notice.** Four hard rules:
+> ⛔ **Rules:**
+> 1. **Never** present setup as a "reminder", "note", "things to know", or inline bullet dumps.
+> 2. **Never** echo the skill description, pricing, or quota as a lead-in block.
+> 3. **Always give a full, clickable URL** — not a `{SITE_URL}` placeholder.
+> 4. **Always verify programmatically** — never trust a verbal claim alone.
+
+> 🔒 **Same-browser rule (critical)**: the extension, the MonsterGet login, and the TikTok login must all be in the **same browser**. When guiding, name the browser explicitly: "用 Edge" / "用 Chrome". Never let the user spread the three steps across two browsers.
+
+#### Phase A — Show the full 3-step guide FIRST (before any check)
+
+**A1. Show the complete guide with links** — the user needs to know what to prepare:
+
+> 用这个 skill 前需要准备 3 件事（都用同一个浏览器：**Edge 或 Chrome**）：
+> ① 安装 MonsterGet 扩展 → 打开 https://monsterget.com/install 安装
+> ② 登录 monsterget.com → 打开 https://monsterget.com 注册并登录
+> ③ 登录 TikTok → 打开 https://www.tiktok.com 登录你的账号
 >
-> 1. **Never** present setup as a "reminder", "note", "things to know", "prerequisites", or a bullet list the user reads on their own.
-> 2. **Never** print all three steps at once and wait for a single "done" — that is a checklist, not guidance.
-> 3. **Never** echo the skill description, pricing, or quota as a lead-in "reminder" block.
-> 4. **Always give a full, clickable URL** — `https://monsterget.com/install` (not a `{SITE_URL}` placeholder). The user must be able to click or paste it directly.
->
-> Instead: **pre-check what's already done → report status → guide only the unfinished steps**, one at a time. The user must never have to guess whether a step worked — you verify it programmatically and tell them.
+> 准备好了回复"好了"（或"已装好/已登录"），我会自动检测。
 
-> 🔒 **Same-browser rule (critical)**: the extension, the MonsterGet login, and the TikTok login must all be in the **same browser**. The extension only works in the browser it's installed in. When guiding, always name the browser explicitly: "用 Edge" / "用 Chrome". Never let the user spread the three steps across two browsers.
+**A2. WAIT** for the user to say they're ready. Do not run checks before this — the user needs the guide first.
 
-#### Phase A — Silent pre-check (before telling the user anything)
-
-**A1. Determine the browser first** (never guess, never silently default to Edge):
-
+**A3. VERIFY everything** — run the silent preflight:
 ```bash
-bash "$SCRIPTS/detect-browser.sh"
-# → {"os":"windows","browser":"edge","browser_exe":"msedge","extension":true}
+bash "$SCRIPTS/preflight.sh"
 ```
 
-**Then name the browser explicitly to the user** (never leave it unspecified):
+- `"ready":true` → all done, jump to **Completion**.
+- `"ready":false` → show the status table, then guide only ❌ items one at a time, starting at `next`.
 
-| Detection result | What to tell the user |
-|---------------- |-----------------------|
-| `edge` | ✅ 扩展在 **Edge** 里，以下操作都用 Edge。 |
-| `chrome` | ✅ 扩展在 **Chrome** 里，以下操作都用 Chrome。 |
-| `none` | ❌ 还没检测到扩展，先安装扩展并确定用哪个浏览器。 |
-
-**A2. Check the two logins** against the detected browser (short probes — 3 polls is enough to detect an already-finished setup):
-
-```bash
-MONSTERGET_POLLS=3 bash "$SCRIPTS/check-login.sh" monsterget   # → {"logged_in":true,...}
-MONSTERGET_POLLS=3 bash "$SCRIPTS/check-login.sh" tiktok       # → {"logged_in":true,...}
-```
-
-If `browser` is `none`, skip the login checks and go directly to Phase B Step ① — after the extension is installed, step ① re-detects the browser.
-
-**A3. Show the status table in the user's language, naming the browser**:
+Show the status with ✅/❌ (naming the browser):
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   准备情况检查（浏览器：${BROWSER}）
-  ① 安装 MonsterGet 扩展     ✅ / ❌ 未安装
+  ① 安装 MonsterGet 扩展     ✅ 已完成 / ❌ 未安装
   ② 登录 monsterget.com     ✅ 已登录 / ❌ 未登录
   ③ 登录 TikTok             ✅ 已登录 / ❌ 未登录
   提示：3 项都用同一个浏览器（${BROWSER}）操作。
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
-
-**A4. Enter Phase B** — guide only the rows marked ❌, in order ①→②→③. Rows already ✅ are skipped silently — do not ask the user to redo them.
 
 #### The per-step protocol (for each unfinished step)
 
@@ -528,9 +518,20 @@ The limit counts **running tasks**, not open windows:
 
 ### Step 0 messages (中文)
 
-> Send these **one at a time** — never all three at once. Links must be the **full URL**, never a `{SITE_URL}` placeholder.
+> Links must be the **full URL**, never a `{SITE_URL}` placeholder.
 
-**Phase A — 预检状态表**
+**Phase A — 第一步先发完整指引（等用户回复后再检测）**
+
+```
+用这个 skill 前需要准备 3 件事（都用同一个浏览器：Edge 或 Chrome）：
+① 安装 MonsterGet 扩展 → 打开 https://monsterget.com/install 安装
+② 登录 monsterget.com → 打开 https://monsterget.com 注册并登录
+③ 登录 TikTok → 打开 https://www.tiktok.com 登录你的账号
+
+准备好了回复"好了"（或"已装好/已登录"），我会自动检测。
+```
+
+**Phase B — 用户回复后，显示预检状态表**
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

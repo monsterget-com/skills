@@ -32,20 +32,24 @@ Say in your chat:
    If your runtime has no rules mechanism, just re-read `~/.monsterget/skill/SKILL.md` when the user asks for TikTok data.
 4. Read `~/.monsterget/skill/SKILL.md` (or `~/.monsterget/skill/AGENTS.md` for non-Claude clients) and follow the flow.
 
-5. **Immediately run the First-Run flow — do NOT dump a checklist.** Install is the one moment the user is listening, so use it. The protocol is fixed:
+5. **Immediately run the First-Run flow.** Install is the one moment the user is listening, so use it. Order matters — show the guide BEFORE checking anything:
 
-   **a. Pre-check, don't lecture.** Run `bash ~/.monsterget/skill/scripts/preflight.sh` (silent, ~15 s). It returns `{"ready":false,"next":"extension",...}` — `next` is the FIRST step the user still has to do.
-
-   **b. Show one short message with the 3 prerequisites and links** (in the user's language), marking the ones `preflight` already passed as ✅:
+   **a. Show the full 3-step guide with links** (in the user's language), so the user knows what to prepare:
 
    > 用这个 skill 前需要准备 3 件事（都用同一个浏览器：**Edge 或 Chrome**）：
-   > ① 安装 MonsterGet 扩展 → https://monsterget.com/install
-   > ② 登录 monsterget.com → https://monsterget.com
-   > ③ 登录 TikTok → https://www.tiktok.com
+   > ① 安装 MonsterGet 扩展 → 打开 https://monsterget.com/install 安装
+   > ② 登录 monsterget.com → 打开 https://monsterget.com 注册并登录
+   > ③ 登录 TikTok → 打开 https://www.tiktok.com 登录你的账号
+   >
+   > 准备好了回复"好了"（或"已装好/已登录"），我会自动检测。
 
-   **c. Guide one step at a time, starting at `next`.** TELL → WAIT for the user's "done" → VERIFY with `detect-browser.sh` / `check-login.sh` → REPORT ✅/❌. Loop until that step passes, then the next. Never advance past a failed step. (Same protocol as SKILL.md Step 0.)
+   **b. WAIT** for the user to say they're ready. Do not run checks before this — the user needs the guide first.
 
-   **d. When all three pass** → tell the user setup is complete and offer example prompts:
+   **c. VERIFY everything** with the silent pre-check: `bash ~/.monsterget/skill/scripts/preflight.sh`. It returns `{"ready":false,"next":"extension",...}` — `next` is the FIRST step the user still has to do; `ready:true` means all pass.
+
+   **d. Guide only what's ❌, one step at a time, starting at `next`.** TELL → WAIT for "done" → VERIFY with `detect-browser.sh` / `check-login.sh` → REPORT ✅/❌. Loop until that step passes, then the next. Never advance past a failed step. (Same protocol as SKILL.md Step 0.)
+
+   **e. When all three pass** → tell the user setup is complete and offer example prompts:
 
    > ✅ 3 项全部通过，可以开始抓取了！试试下面任意一句：
    > - 抓取关于 "mike tyson" 的 TikTok 视频 50 条

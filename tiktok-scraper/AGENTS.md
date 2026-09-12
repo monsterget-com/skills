@@ -20,23 +20,28 @@ No server-side TikTok scraping. The scrape runs inside the user's real TikTok se
 
 ## First-run flow (run this right after install)
 
-The user needs 3 things. Do NOT present them as a bullet list they read on their own. Instead:
+The user needs 3 things. Show them the complete guide FIRST, then verify.
 
-**a. Silent pre-check.** Run `preflight.sh` once to see what's already done:
+**a. Show the full 3-step guide with links** (in the user's language) — so the user knows exactly what to prepare before anything is checked:
+
+> 用这个 skill 前需要准备 3 件事（都用同一个浏览器：**Edge 或 Chrome**）：
+> ① 安装 MonsterGet 扩展 → 打开 https://monsterget.com/install 安装
+> ② 登录 monsterget.com → 打开 https://monsterget.com 注册并登录
+> ③ 登录 TikTok → 打开 https://www.tiktok.com 登录你的账号
+>
+> 准备好了回复"好了"（或"已装好/已登录"），我会自动检测。
+
+**b. WAIT** for the user to say they're ready (e.g. "好了"). Don't run checks before this — the user needs the guide first.
+
+**c. VERIFY everything** — run the silent pre-check:
 ```bash
 bash ~/.monsterget/skill/scripts/preflight.sh
 ```
 
 Output fields: `ready` (all done), `next` (first failing step, or `""`), `extension`, `monsterget_login`, `tiktok_login`, `browser`.
 
-**b. Show the 3 prerequisites with links**, noting what's already ✅:
-
-> 用这个 skill 前需要准备 3 件事（都用同一个浏览器：**Edge 或 Chrome**）：
-> ① 安装 MonsterGet 扩展 → https://monsterget.com/install
-> ② 登录 monsterget.com → https://monsterget.com
-> ③ 登录 TikTok → https://www.tiktok.com
-
-**c. Guide one step at a time, starting at `next`.** Per-step protocol: TELL (what to do + URL + which browser) → WAIT for "done" → VERIFY with script → REPORT ✅/❌. Loop until pass, then next. Never advance past a failed step.
+- `ready:true` → jump to **d**.
+- `ready:false` → show the status with ✅/❌ per item, then guide **only** the ❌ items one at a time, starting at `next`. Per-step protocol: TELL (what to do + URL + which browser) → WAIT for "done" → VERIFY with that step's script → REPORT ✅/❌. Loop until pass, then next. Never advance past a failed step.
 
 | Step | Verify with | URL |
 |------|-------------|-----|
