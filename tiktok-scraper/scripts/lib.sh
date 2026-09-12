@@ -209,6 +209,21 @@ browser_running() {
 }
 
 # ---------------------------------------------------------------------------
+# Pacing
+# ---------------------------------------------------------------------------
+# random_delay [min] [max] — sleep a random whole number of seconds in [min,max].
+# Used between consecutive scrapes so a batch does not look like a machine
+# opening window after window. The chosen value is left in RAND_DELAY.
+RAND_DELAY=0
+random_delay() {
+  local min="${1:-15}" max="${2:-45}" span
+  span=$(( max - min + 1 ))
+  [ "$span" -lt 1 ] && span=1
+  RAND_DELAY=$(( min + RANDOM % span ))
+  sleep "$RAND_DELAY"
+}
+
+# ---------------------------------------------------------------------------
 # API helpers
 # ---------------------------------------------------------------------------
 generate_task_id() {

@@ -86,6 +86,7 @@ Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
 | `check-login.sh <monsterget\|tiktok>` | Opens the platform's login-check page, polls up to 60s (or `MONSTERGET_POLLS` × 5s). Writes the login result to state. | 0 = logged in, 1 = not |
 | `preflight.sh` | Silent full preflight: extension → browser choice → platform reachability → both logins. Short 3×5s login probes. | 0 = all pass, 1 = something failed |
 | `run-scrape.sh <pagePath> <param> <value> [count]` | End-to-end scrape: taskId → open browser → verify process → poll → download CSV. | 0 = CSV downloaded, 1 = failed |
+| `run-batch.sh <spec> [<spec> ...]` | Multiple scrapes serially with a random pause (15-45s) between each. Never after the last. | 0 = all passed, 1 = any failed |
 
 **Every script prints exactly one JSON object to stdout.** Parse that — it is the authoritative result. Do not ask the user what happened.
 
@@ -475,21 +476,32 @@ The platform creates a **parent task** that chains through each profile sequenti
 
 ### Running multiple scrapes (serial batch)
 
-When the user asks for **several scrapes at once** (e.g. "test all 5 scrapers"), call the script in a loop, unattended:
+When the user asks for **several scrapes at once** (e.g. "test all 5 scrapers"), use `run-batch.sh` with one quoted spec per scrape:
 
 ```bash
-for spec in "/tiktok-search-video query mike 10" \
-            "/tiktok-search-user query beauty 5" \
-            "/tiktok-tag query kpop 5"; do
-  bash "$SCRIPTS/run-scrape.sh" $spec
-done
+bash "$SCRIPTS/run-batch.sh" \
+  "/tiktok-search-video query mike tyson 20" \
+  "/tiktok-search-user query beauty 5" \
+  "/tiktok-tag query kpop 5"
+```
+
+The batch runs them **serially, unattended**, and — crucially — sleeps a **random 15–45s between consecutive scrapes** (never after the last). This paces the batch so it doesn't look like a machine opening window after window. Override with `MONSTERGET_DELAY_MIN` / `MONSTERGET_DELAY_MAX` if a user needs a different cadence.
+
+Output is a single JSON object with every result:
+
+```json
+{"total":3,"ok":2,"failed":1,"results":[
+  {"status":"ready","taskId":"...","file":"mike-...csv","rowCount":20},
+  {"status":"ready","taskId":"...","file":"beauty-...csv","rowCount":5},
+  {"status":"failed","taskId":"...","error":"..."}]}
 ```
 
 Key rules:
 - **Do not stop to ask the user between tasks.** Each scrape is independent and the concurrency slot frees as soon as the previous one is `ready`.
 - The old browser tab may stay open — **it does not block anything**. Close tabs only if you want to reduce clutter.
-- If you get a `429 too_many_concurrent_scrapes`, a previous task is still `pending`/`processing` — wait for it to be `ready`/`failed`, then continue.
+- If a result carries `429 too_many_concurrent_scrapes`, a previous task is still `pending`/`processing` — wait for it to be `ready`/`failed`, then continue.
 - Report all results **at the end**, together, not one at a time.
+- **Never reimplement the loop inline** — weak clients forget the pause; the script enforces it.
 
 ## Error handling
 
