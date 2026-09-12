@@ -51,12 +51,34 @@ AI ──4. GET {SITE_URL}/api/agent/delivery/task/{taskId}/data    ──▶ CS
 
 ```text
 BASE_URL       = https://monsterget.com      # API host (usually same as SITE_URL)
-DEFAULT_BROWSER = msedge                     # msedge | chrome | open (mac) | xdg-open (linux)
+STATE_FILE     = ~/.monsterget/preflight-state.json   # persisted check results across conversations
 ```
+
+`SITE_URL` (default: `https://monsterget.com`) — API host, same as `BASE_URL` in production.
 
 Change `SITE_URL`/`BASE_URL` when the platform is running locally (`http://localhost:8000`).
 
 **Link rule**: the user-facing links in Step 0 are written for production (`https://monsterget.com/install`, `https://monsterget.com`). If the platform runs locally, substitute the domain in those links with the configured `SITE_URL` — never show a bare `{SITE_URL}` placeholder to the user. Always produce a full, clickable URL.
+
+### Browser variables and state persistence
+
+These session variables are **set by Phase A of Step 0** and used everywhere (checks, scrapes, Step 3c/3c.1):
+
+| Variable | Meaning |
+|----------|---------|
+| `BROWSER` | `edge` or `chrome` — which browser has the MonsterGet extension installed |
+| `BROWSER_EXE` | `msedge` or `chrome` — for shell `start` / `tasklist` commands |
+| `BROWSER_FULLPATH` | Full exe path for direct launch (fallback when `start` fails) |
+| `EXT_OK` | `true` / `false` — extension check result |
+| `MG_LOGIN_OK` | `true` / `false` — MonsterGet login check result |
+| `TK_LOGIN_OK` | `true` / `false` — TikTok login check result |
+
+**State file** (`$STATE_FILE`): a small JSON file persisted between conversations:
+
+- **File**: `~/.monsterget/preflight-state.json`
+- **Purpose**: (a) record of when the checks last passed, (b) `BROWSER` hint so a new conversation knows where to look. **It is NEVER a substitute for re-running the checks — every new conversation re-verifies.**
+- **Contents**: `{browser, browser_exe, extension, monsterget_login, tiktok_login, checked_at}`
+- **Rule**: each new conversation reads the file for the browser hint, then re-runs all checks and overwrites it. The file is kept only for reference and user visibility.
 
 ### Cold-start contract (crucial — read before any step)
 
@@ -157,19 +179,45 @@ Rules that make the AI fast instead of slow:
 
 #### Phase A — Silent pre-check (before telling the user anything)
 
-Run all three checks first with a short probe (reuse the functions below, but poll only 3 × 5s per login check — enough to detect an already-finished setup). Then show the user a status table in their language:
+**A1. Determine the browser first** (never guess, never silently default to Edge).
+
+Read the state file for a browser hint (informational only — the actual check re-verifies), then run `_detect_browser()`:
+
+```bash
+# Load previous browser hint (not a substitute for detection)
+if [ -f "$STATE_FILE" ]; then
+  PREV_BROWSER=$(grep -o '"browser":"[^"]*"' "$STATE_FILE" | cut -d'"' -f4)
+fi
+
+# Actually detect which browser now has the extension
+_detect_browser
+```
+
+**Then name the browser explicitly to the user** (never leave it unspecified):
+
+| Detection result | What to tell the user |
+|---------------- |-----------------------|
+| `edge` | ✅ 扩展在 **Edge** 里，以下操作都用 Edge。 |
+| `chrome` | ✅ 扩展在 **Chrome** 里，以下操作都用 Chrome。 |
+| `none` | ❌ 还没检测到扩展，先安装扩展并确定用哪个浏览器。 |
+
+**A2. Run the 3 short-probe checks** against the detected browser (poll only 3×5s per login check — enough to detect an already-finished setup). If `BROWSER=none`, skip checks and go directly to Phase B Step ① (after extension is installed, the check after Step ① detects the browser).
+
+**A3. Show the status table in the user's language, naming the browser**:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  准备情况检查
-  ① 安装 MonsterGet 扩展     ✅ 已完成 / ❌ 未安装
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  准备情况检查（浏览器：${BROWSER}）
+  ① 安装 MonsterGet 扩展     ✅ / ❌ 未安装
   ② 登录 monsterget.com     ✅ 已登录 / ❌ 未登录
   ③ 登录 TikTok             ✅ 已登录 / ❌ 未登录
-  提示：3 项都必须在同一个浏览器里完成。
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  提示：3 项都用同一个浏览器（${BROWSER}）操作。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Then **guide only the rows marked ❌**, in order ① → ② → ③, using the per-step protocol below. Rows already ✅ are skipped silently — do not ask the user to redo them.
+Set session variables: `EXT_OK`, `MG_LOGIN_OK`, `TK_LOGIN_OK` based on results.
+
+**A4. Enter Phase B** — guide only the rows marked ❌, in order ①→②→③. Rows already ✅ are skipped silently — do not ask the user to redo them.
 
 #### The per-step protocol (for each unfinished step)
 
@@ -187,27 +235,35 @@ All three ✅ (from pre-check or guidance) → `PREFLIGHT_DONE=true` → tell th
 
 #### Step ① — Install the MonsterGet browser extension
 
-**TELL** (translate to the user's language):
+**TELL** — pick the wording based on what Phase A detected:
 
-> **第 1 步 — 安装 MonsterGet 扩展（用 Edge，或 Chrome）**
+*If the extension was already detected* (`BROWSER=edge|chrome`):
+> **第 1 步 — 扩展已就绪**
+> 已检测到 MonsterGet 扩展在 **{BROWSER}** 里，无需重装。
+> 后续 2 步都会用 **{BROWSER}**。
+
+*If not detected* (`BROWSER=none`):
+> **第 1 步 — 安装 MonsterGet 扩展**
 > 打开安装页：**https://monsterget.com/install**
-> 按页面指引把扩展安装到 **Edge**（或 Chrome）。
-> 装好后回复"好了"，我会自动检测。
+> 把扩展装到 **Edge 或 Chrome**（选一个，后面 3 步都用它）。
+> 装好后回复"好了，用 Edge"或"好了，用 Chrome"，我会检测并确认浏览器。
 
-**VERIFY**: `_check_extension` → `ok` | `missing`
+**VERIFY**: re-run `_detect_browser()` (the extension may have just been installed, so `BROWSER` can change from `none`), then `_check_extension` → `ok` | `missing`
 
 | Result | REPORT | Next |
 |--------|--------|------|
-| `ok` | "✅ 第 1 步完成：扩展已安装。" | → next unfinished step |
-| `missing` | "❌ 还没有检测到扩展。请确认：① 是装在了 Edge 或 Chrome 里吗？（就是刚才打开安装页的那个浏览器）② 装完后刷新过 https://monsterget.com/install 页面吗？装好后回复'好了'。" | re-guide → wait → re-verify |
+| `ok` | "✅ 第 1 步完成：扩展已安装在 **{BROWSER}** 里。" | → next unfinished step |
+| `missing` | "❌ 还没检测到扩展。请确认：① 扩展装好了吗？② 装在了 Edge 还是 Chrome？③ 装完后刷新过 https://monsterget.com/install 吗？装好后回复'好了'。" | re-guide → wait → re-verify |
+
+> 🔁 **After a successful detection, state the browser once more in the next step's message** — so the user never has to remember which browser they picked.
 
 **🚧 Blocking rule**: while ① is `missing`, do **not** advance to ② or ③ — both logins must happen in the browser that has the extension.
 
 #### Step ② — Log in to monsterget.com
 
-**TELL**:
+**TELL** — always name the browser (replace `{BROWSER}` with the actual name):
 
-> **第 2 步 — 登录 monsterget.com（用同一个浏览器：Edge）**
+> **第 2 步 — 登录 monsterget.com（用同一个浏览器：{BROWSER}）**
 > 打开：**https://monsterget.com**
 > 注册或登录你的账号（游客登录也可以）。
 > 完成后回复"好了"，我会自动检测登录状态。
@@ -217,15 +273,15 @@ All three ✅ (from pre-check or guidance) → `PREFLIGHT_DONE=true` → tell th
 | Result | REPORT | Next |
 |--------|--------|------|
 | `logged_in: true` | "✅ 第 2 步完成：已登录 monsterget.com。" | → next unfinished step |
-| `false` (timeout) | "❌ 还没有检测到登录。请确认是在刚才安装扩展的同一个浏览器（Edge）里打开了 https://monsterget.com 并登录，然后回复'好了'。" | re-guide → wait → re-verify |
+| `false` (timeout) | "❌ 还没有检测到登录。请确认是在刚才安装扩展的同一个浏览器（{BROWSER}）里打开了 https://monsterget.com 并登录，然后回复'好了'。" | re-guide → wait → re-verify |
 
 > Before the check opens the browser, apply the Step 3c.1 rule: confirm the process actually started. A silent `start` failure looks exactly like "not logged in", and will send you chasing the wrong problem.
 
 #### Step ③ — Log in to TikTok
 
-**TELL**:
+**TELL** — always name the browser (replace `{BROWSER}`):
 
-> **第 3 步 — 登录 TikTok（用同一个浏览器：Edge）**
+> **第 3 步 — 登录 TikTok（用同一个浏览器：{BROWSER}）**
 > 打开：**https://www.tiktok.com**
 > 登录你的 TikTok 账号。
 > （如果只抓取非 TikTok 平台，此步可跳过。）
@@ -236,22 +292,49 @@ All three ✅ (from pre-check or guidance) → `PREFLIGHT_DONE=true` → tell th
 | Result | REPORT | Next |
 |--------|--------|------|
 | `logged_in: true` | "✅ 第 3 步完成：已登录 TikTok。" | all three ✅ → setup complete |
-| `false` (timeout) | "❌ 还没有检测到 TikTok 登录。请确认是在同一个浏览器（Edge）里登录的，然后回复'好了'。" | re-guide → wait → re-verify |
+| `false` (timeout) | "❌ 还没有检测到 TikTok 登录。请确认是在同一个浏览器（{BROWSER}）里登录的，然后回复'好了'。" | re-guide → wait → re-verify |
 
-#### Check functions (library)
+#### Browser detection + check functions (library)
+
+> **Run `_detect_browser()` FIRST, before any other check.** It sets `BROWSER`, `BROWSER_EXE`, `BROWSER_FULLPATH`. Every check below then uses those variables — never a hardcoded `msedge`. If you skip detection, you will check the wrong browser and mislead the user.
 
 ```bash
-# ① Extension install check (local shell scan, no browser needed)
-_check_extension() {
-  EDGE_EXT=$(grep -l "MonsterGet" "$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Preferences" 2>/dev/null || echo "")
-  CHROME_EXT=$(grep -l "MonsterGet" "$HOME/AppData/Local/Google/Chrome/User Data/Default/Preferences" 2>/dev/null || echo "")
-  if [ -n "$EDGE_EXT" ] || [ -n "$CHROME_EXT" ]; then echo "ok"; else echo "missing"; fi
+# Browser detection — scans both browsers, returns which one has the extension.
+# Sets the session variables below. Run BEFORE any other check.
+_detect_browser() {
+  EDGE_PREF="$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Preferences"
+  CHROME_PREF="$HOME/AppData/Local/Google/Chrome/User Data/Default/Preferences"
+  if [ -f "$EDGE_PREF" ] && grep -q "MonsterGet" "$EDGE_PREF" 2>/dev/null; then
+    BROWSER="edge"; BROWSER_EXE="msedge"
+    BROWSER_FULLPATH="/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+  elif [ -f "$CHROME_PREF" ] && grep -q "MonsterGet" "$CHROME_PREF" 2>/dev/null; then
+    BROWSER="chrome"; BROWSER_EXE="chrome"
+    BROWSER_FULLPATH="/c/Program Files/Google/Chrome/Application/chrome.exe"
+  else
+    BROWSER="none"; BROWSER_EXE=""; BROWSER_FULLPATH=""
+  fi
+  echo "$BROWSER"
 }
+```
 
+```bash
+# ① Extension install check — uses BROWSER from _detect_browser
+#    Returns: ok | missing
+_check_extension() {
+  if [ "$BROWSER" = "edge" ] || [ "$BROWSER" = "chrome" ]; then echo "ok"; else echo "missing"; fi
+}
+```
+
+```bash
 # ② MonsterGet login check (needs a browser page to report back)
+#    Uses $BROWSER_EXE / $BROWSER_FULLPATH — same browser as the extension.
 _check_monsterget_login() {
   local MG_ID=$(curl -s "$BASE_URL/api/agent/generate-task-id" | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
-  start msedge "$SITE_URL/login-check.html?auto=1&agentTaskId=$MG_ID"
+  if command -v "$BROWSER_EXE" >/dev/null 2>&1; then
+    start "$BROWSER_EXE" "$SITE_URL/login-check.html?auto=1&agentTaskId=$MG_ID"
+  else
+    "$BROWSER_FULLPATH" "$SITE_URL/login-check.html?auto=1&agentTaskId=$MG_ID"
+  fi
   for i in $(seq 1 12); do
     local R=$(curl -s "$BASE_URL/api/agent/login-check/$MG_ID")
     echo "$R" | grep -q '"logged_in"' && { echo "$R"; return; }
@@ -259,13 +342,20 @@ _check_monsterget_login() {
   done
   echo '{"logged_in":false}'
 }
+```
 
+```bash
 # ③ Target-site (TikTok) login check (needs a browser page to report back)
+#    Uses $BROWSER_EXE / $BROWSER_FULLPATH — same browser as the extension.
 _check_target_login() {
   local T=$(curl -s -X POST "$BASE_URL/api/agent/login-check-target" \
     -H "Content-Type: application/json" -d '{"target":"tiktok"}')
   local TK_ID=$(echo "$T" | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
-  start msedge "$SITE_URL/login-check-target.html?auto=1&agentTaskId=$TK_ID&target=tiktok"
+  if command -v "$BROWSER_EXE" >/dev/null 2>&1; then
+    start "$BROWSER_EXE" "$SITE_URL/login-check-target.html?auto=1&agentTaskId=$TK_ID&target=tiktok"
+  else
+    "$BROWSER_FULLPATH" "$SITE_URL/login-check-target.html?auto=1&agentTaskId=$TK_ID&target=tiktok"
+  fi
   for i in $(seq 1 12); do
     local R=$(curl -s "$BASE_URL/api/agent/login-check/$TK_ID")
     echo "$R" | grep -q '"logged_in"' && { echo "$R"; return; }
@@ -288,7 +378,30 @@ After all three steps pass, tell the user (in their language):
 
 > ✅ 全部准备完成！开始抓取...
 
+Then save the result to the state file and set the session flag:
+
+```bash
+mkdir -p "$(dirname "$STATE_FILE")"
+cat > "$STATE_FILE" << EOFSTATE
+{
+  "browser": "${BROWSER:-edge}",
+  "browser_exe": "${BROWSER_EXE:-msedge}",
+  "extension": ${EXT_OK:-false},
+  "monsterget_login": ${MG_LOGIN_OK:-false},
+  "tiktok_login": ${TK_LOGIN_OK:-false},
+  "checked_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+EOFSTATE
+```
+
 Then set `PREFLIGHT_DONE=true` (session variable) and go to Step 1. Subsequent scrapes in this session skip Steps 0/0.6 entirely.
+
+#### State persistence rules (re-check every conversation)
+
+1. **Every new conversation reads** `$STATE_FILE` (if it exists) for the browser hint and the last check timestamp. This is informational only — it helps you tell the user "上次检查通过于 2026-09-12" and which browser.
+2. **Every new conversation re-runs** all checks in Phase A. The saved results are authority only for the user's visibility, never for skipping verification.
+3. **Never skip Phase A** because the state file says everything was OK. `PREFLIGHT_DONE` is always `false` at session start — cold-start contract.
+4. After re-checking, **overwrite** the state file with fresh results and timestamp.
 
 ### Step 0.6 — 🪄 Silent preflight (programmatic, ~20 seconds)
 
@@ -298,6 +411,9 @@ A silent programmatic check — no user interaction required, no questions asked
 If all pass → `PREFLIGHT_DONE=true`, proceed to Step 1. If any fail → escalate to the user with the Step 0 flow (start at the failed step's TELL).
 
 ```bash
+# 0. Detect the browser FIRST (never assume Edge)
+_detect_browser   # sets BROWSER, BROWSER_EXE, BROWSER_FULLPATH
+
 # ① Extension install check (local file scan, 0.1s, no browser needed)
 EXT_RESULT=$(_check_extension)   # defined in Step 0
 if [ "$EXT_RESULT" = "missing" ]; then
@@ -313,11 +429,16 @@ if [ "$HTTP_CODE" != "200" ]; then
 fi
 
 # ③ Browser launch + login check — generate taskId, open a login-check page, poll
+#    Uses $BROWSER_EXE / $BROWSER_FULLPATH (same browser as the extension)
 TASK_ID=$(curl -s "$BASE_URL/api/agent/generate-task-id" | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
-start msedge "$SITE_URL/login-check.html?auto=1&agentTaskId=$TASK_ID"
+if command -v "$BROWSER_EXE" >/dev/null 2>&1; then
+  start "$BROWSER_EXE" "$SITE_URL/login-check.html?auto=1&agentTaskId=$TASK_ID"
+else
+  "$BROWSER_FULLPATH" "$SITE_URL/login-check.html?auto=1&agentTaskId=$TASK_ID"
+fi
 # verify the browser process started (same rule as Step 3c.1)
 sleep 3
-if tasklist /fi "IMAGENAME eq msedge.exe" 2>/dev/null | grep -q msedge; then
+if tasklist /fi "IMAGENAME eq $BROWSER_EXE.exe" 2>/dev/null | grep -q "$BROWSER_EXE"; then
   echo "OK: browser started"
 else
   echo "FAIL: browser did not start — retry with full exe path (see Step 3c.1)"
@@ -393,19 +514,22 @@ If count isn't given, use the type default (30 for tag/user search, 50 for video
 
 ⚠️ **URL must be wrapped in double quotes** — otherwise the shell treats `&` as a command separator and truncates the query.
 
+> 🚀 **Before you open the browser**: run `_detect_browser()` (Step 0.6) to set `BROWSER` / `BROWSER_EXE` / `BROWSER_FULLPATH`. Every command below uses these variables — never hardcode a browser name.
+
 ```bash
-# Edge (Windows) — or substitute chrome / open / xdg-open (which browser has the extension)
-start msedge "https://monsterget.com/tiktok-search-video?auto=1&agentTaskId=$TASK_ID&query=mike&count=10"
+# Open in the detected browser (Windows — works for edge or chrome)
+# Uses $BROWSER_EXE — whichever browser the extension is installed in
+start "$BROWSER_EXE" "https://monsterget.com/tiktok-search-video?auto=1&agentTaskId=$TASK_ID&query=mike&count=10"
 ```
 
 If `start` isn't available, use the full exe path:
 ```bash
-"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" "https://monsterget.com/tiktok-search-video?auto=1&agentTaskId=$TASK_ID&query=mike&count=10"
+"$BROWSER_FULLPATH" "https://monsterget.com/tiktok-search-video?auto=1&agentTaskId=$TASK_ID&query=mike&count=10"
 ```
 
 > 🚀 **Do NOT ask the user** "is it open?" after opening the browser. Do not pause, do not read the URL bar. The page creates the task with the taskId you already hold and runs automatically.
 >
-> ⚠️ **But DO verify the browser process actually started** before pollling (Step 3c.1). The open command can fail silently (e.g. `msedge` not in PATH in Git Bash). If the browser never started, every poll will return `not_found`. Verify programmatically — never by asking the user.
+> ⚠️ **But DO verify the browser process actually started** before pollling (Step 3c.1). The open command can fail silently (e.g. `$BROWSER_EXE` not in PATH in Git Bash). If the browser never started, every poll will return `not_found`. Verify programmatically — never by asking the user.
 
 #### 3c.1 — Verify the browser process started (new, read this)
 
@@ -413,34 +537,40 @@ After the open command, immediately verify the process exists — **do not ask t
 
 ```bash
 # Wait up to 3 seconds for the process to appear
+# $BROWSER_EXE was set by _detect_browser() — the browser that has the extension
 BROWSER_STARTED=false
 for i in 1 2 3; do
-  if tasklist /fi "IMAGENAME eq msedge.exe" 2>/dev/null | grep -q msedge; then
+  if tasklist /fi "IMAGENAME eq $BROWSER_EXE.exe" 2>/dev/null | grep -qi "$BROWSER_EXE"; then
     BROWSER_STARTED=true
-    echo "✅ browser process confirmed (msedge.exe)"
+    echo "✅ browser process confirmed ($BROWSER_EXE.exe)"
     break
   fi
   sleep 1
 done
 ```
 
-**If `BROWSER_STARTED=false`**: the `start` command failed silently. Try the full exe path explicitly:
+**If `BROWSER_STARTED=false`**: the `start` command failed silently. Try the full exe path explicitly — using the path that `_detect_browser()` already found:
 
 ```bash
-# Retry with full path (Windows — adjust for chrome or other browsers)
-if [ -f "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" ]; then
-  "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" "{URL}"
-elif [ -f "/c/Program Files/Google/Chrome/Application/chrome.exe" ]; then
-  "/c/Program Files/Google/Chrome/Application/chrome.exe" "{URL}"
-fi
+# Retry with the full path of the detected browser
+"$BROWSER_FULLPATH" "{URL}"
 
 # Re-check after retry
 sleep 2
-if tasklist /fi "IMAGENAME eq msedge.exe" 2>/dev/null | grep -q msedge; then
+if tasklist /fi "IMAGENAME eq $BROWSER_EXE.exe" 2>/dev/null | grep -qi "$BROWSER_EXE"; then
   echo "✅ browser started via full path"
   BROWSER_STARTED=true
 fi
 ```
+
+> If `$BROWSER_FULLPATH` doesn't exist either, fall back to the canonical paths for the detected browser:
+> ```bash
+> # Edge
+> "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" "{URL}"
+> # Chrome
+> "/c/Program Files/Google/Chrome/Application/chrome.exe" "{URL}"
+> ```
+> Do NOT blindly try the other browser — the extension only exists in one of them (that's what `_detect_browser` determined). Opening the wrong browser creates a task that can never complete.
 
 **If still not running after full-path retry**: stop and tell the user "I tried to open the browser but the process did not start. Please open `{URL}` manually in the browser where the extension is installed, then reply 'done'."
 
@@ -497,7 +627,7 @@ When the user needs profile data for **multiple creators at once** (e.g., "get p
 
 ```bash
 TASK_ID=$(curl -s {BASE_URL}/api/agent/generate-task-id | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
-start msedge "https://monsterget.com/tiktok-profile?auto=1&agentTaskId=$TASK_ID&usernames=mike,jenifer,tiktok&count=3"
+start "$BROWSER_EXE" "https://monsterget.com/tiktok-profile?auto=1&agentTaskId=$TASK_ID&usernames=mike,jenifer,tiktok&count=3"
 ```
 
 The platform creates a **parent task** that chains through each profile sequentially. Poll and download using `$TASK_ID` — the CSV contains one row per creator with aggregated profile stats.
@@ -531,7 +661,7 @@ Key rules:
 |---------|-------|-----|
 | `curl` returns nothing / connection refused | platform not reachable | confirm backend running (local) or site is up (production) |
 | status endpoint → `404 delivery_not_found` (transient, <60s) | wrong taskId | re-run 3a and regenerate |
-| `delivery_not_found` **persists >60s** | **browser never started** — the open command silently failed (exe not in PATH), so the page never created the task | Verify with `tasklist /fi "IMAGENAME eq msedge.exe"`; retry with full exe path (Step 3c.1); if still absent, ask user to open the URL manually |
+| `delivery_not_found` **persists >60s** | **browser never started** — the open command silently failed (exe not in PATH), so the page never created the task | Verify with `tasklist /fi "IMAGENAME eq $BROWSER_EXE.exe"`; retry with `$BROWSER_FULLPATH` (Step 3c.1); if still absent, ask user to open the URL manually |
 | status stays `processing` > 5 min | extension missing, browser not logged in, or page closed | confirm extension installed + logged in + page still open; page must stay open until scrape completes |
 | status endpoint never reaches `ready`, page shows "extension not ready" | extension not installed / not enabled | install extension from https://monsterget.com/install, reload page |
 | page shows "please log in" | not logged in | log in on https://monsterget.com, reopen page |
