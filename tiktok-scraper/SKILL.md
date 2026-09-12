@@ -56,6 +56,8 @@ DEFAULT_BROWSER = msedge                     # msedge | chrome | open (mac) | xd
 
 Change `SITE_URL`/`BASE_URL` when the platform is running locally (`http://localhost:8000`).
 
+**Link rule**: the user-facing links in Step 0 are written for production (`https://monsterget.com/install`, `https://monsterget.com`). If the platform runs locally, substitute the domain in those links with the configured `SITE_URL` — never show a bare `{SITE_URL}` placeholder to the user. Always produce a full, clickable URL.
+
 ### Cold-start contract (crucial — read before any step)
 
 **`PREFLIGHT_DONE` is `false` at the start of every new conversation.** Memory, prior conversations, and "I already told the user this before" must **never** set it.
@@ -103,7 +105,7 @@ Username accepts `@name` or full profile URL (server normalizes).
 > │     │                                                                 │
 > │     ├── [Path A] No prior knowledge / user says not set up            │
 > │     │     │                                                           │
-> │     │     └── Step 0: guide ONE step → verify → next                 │
+> │     │     └── Step 0: pre-check all 3 → show status → guide ❌        │
 > │     │           ① install extension  → _check_extension              │
 > │     │           ② login monsterget   → _check_monsterget_login        │
 > │     │           ③ login TikTok       → _check_target_login            │
@@ -138,63 +140,84 @@ Rules that make the AI fast instead of slow:
 5. **A finished task frees the concurrency slot.** The scrape window may stay open — it does not block the next task. Only a task still `pending`/`processing` counts against the limit.
 6. **Only speak to the user** when: first-time setup (Step 0), a scrape fails, or all requested scrapes are done and you're presenting results.
 
-### Step 0 — 🚀 First-time setup: guide ONE step at a time (Path A only)
+### Step 0 — 🚀 First-time setup: pre-check first, then guide what's missing (Path A only)
 
 > **💡 SKIP RULE**: Step 0 runs only on **Path A** (no prior knowledge, or the user says setup isn't done). If you have prior knowledge the setup is already complete, go **Path B** — Step 0.6 only, no interactive flow. Once `PREFLIGHT_DONE=true` in this session, skip Steps 0/0.6 entirely for later scrapes.
 
-> ⛔ **Setup is an interactive flow, NOT a notice.** Three hard rules:
+> ⛔ **Setup is an interactive flow, NOT a notice.** Four hard rules:
 >
 > 1. **Never** present setup as a "reminder", "note", "things to know", "prerequisites", or a bullet list the user reads on their own.
 > 2. **Never** print all three steps at once and wait for a single "done" — that is a checklist, not guidance.
 > 3. **Never** echo the skill description, pricing, or quota as a lead-in "reminder" block.
+> 4. **Always give a full, clickable URL** — `https://monsterget.com/install` (not a `{SITE_URL}` placeholder). The user must be able to click or paste it directly.
 >
-> Instead: **one step → wait → verify → report → next step.** The user must never have to guess whether a step worked — you verify it programmatically and tell them.
+> Instead: **pre-check what's already done → report status → guide only the unfinished steps**, one at a time. The user must never have to guess whether a step worked — you verify it programmatically and tell them.
 
-#### The per-step protocol (repeat for ① → ② → ③)
+> 🔒 **Same-browser rule (critical)**: the extension, the MonsterGet login, and the TikTok login must all be in the **same browser**. The extension only works in the browser it's installed in. When guiding, always name the browser explicitly: "用 Edge" / "用 Chrome". Never let the user spread the three steps across two browsers.
+
+#### Phase A — Silent pre-check (before telling the user anything)
+
+Run all three checks first with a short probe (reuse the functions below, but poll only 3 × 5s per login check — enough to detect an already-finished setup). Then show the user a status table in their language:
 
 ```
-for each step:
-  1. TELL    one short message: what to do + the exact link + what they'll see
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  准备情况检查
+  ① 安装 MonsterGet 扩展     ✅ 已完成 / ❌ 未安装
+  ② 登录 monsterget.com     ✅ 已登录 / ❌ 未登录
+  ③ 登录 TikTok             ✅ 已登录 / ❌ 未登录
+  提示：3 项都必须在同一个浏览器里完成。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then **guide only the rows marked ❌**, in order ① → ② → ③, using the per-step protocol below. Rows already ✅ are skipped silently — do not ask the user to redo them.
+
+#### The per-step protocol (for each unfinished step)
+
+```
+for each unfinished step, in order:
+  1. TELL    one short message: what to do + the FULL clickable URL + which browser
   2. WAIT    wait for the user to say they're done — never advance early
   3. VERIFY  run THAT step's check function (library below) — programmatically
   4. REPORT  "✅ Step N done" or "❌ Step N failed: <exactly how to fix>"
   5. if ❌   → re-guide → wait → re-verify. Loop until ✅. Do NOT advance.
-  → next step
+  → next unfinished step
 ```
 
-All three ✅ → `PREFLIGHT_DONE=true` → tell the user setup is complete → Step 1.
+All three ✅ (from pre-check or guidance) → `PREFLIGHT_DONE=true` → tell the user setup is complete → Step 1.
 
 #### Step ① — Install the MonsterGet browser extension
 
 **TELL** (translate to the user's language):
 
-> **第 1 步 / Step 1 — 安装 MonsterGet 扩展**
-> 请打开 {SITE_URL}/install ，按页面指引把扩展安装到 **Edge**（或 Chrome）。
+> **第 1 步 — 安装 MonsterGet 扩展（用 Edge，或 Chrome）**
+> 打开安装页：**https://monsterget.com/install**
+> 按页面指引把扩展安装到 **Edge**（或 Chrome）。
 > 装好后回复"好了"，我会自动检测。
 
 **VERIFY**: `_check_extension` → `ok` | `missing`
 
 | Result | REPORT | Next |
 |--------|--------|------|
-| `ok` | "✅ 第 1 步完成：扩展已安装。" | → Step ② |
-| `missing` | "❌ 还没有检测到扩展。请确认：① 是装在 Edge 或 Chrome 里吗？② 装完后刷新过页面吗？装好后回复'好了'。" | re-guide → wait → re-verify |
+| `ok` | "✅ 第 1 步完成：扩展已安装。" | → next unfinished step |
+| `missing` | "❌ 还没有检测到扩展。请确认：① 是装在了 Edge 或 Chrome 里吗？（就是刚才打开安装页的那个浏览器）② 装完后刷新过 https://monsterget.com/install 页面吗？装好后回复'好了'。" | re-guide → wait → re-verify |
 
-**🚧 Blocking rule**: while ① is `missing`, do **not** advance to ② or ③ — both checks depend on the extension and would fail regardless.
+**🚧 Blocking rule**: while ① is `missing`, do **not** advance to ② or ③ — both logins must happen in the browser that has the extension.
 
 #### Step ② — Log in to monsterget.com
 
 **TELL**:
 
-> **第 2 步 — 登录 monsterget.com**
-> 请打开 {SITE_URL} ，注册或登录你的账号（游客登录也可以）。
+> **第 2 步 — 登录 monsterget.com（用同一个浏览器：Edge）**
+> 打开：**https://monsterget.com**
+> 注册或登录你的账号（游客登录也可以）。
 > 完成后回复"好了"，我会自动检测登录状态。
 
 **VERIFY**: `_check_monsterget_login` → polls up to 60s (12 × 5s)
 
 | Result | REPORT | Next |
 |--------|--------|------|
-| `logged_in: true` | "✅ 第 2 步完成：已登录 monsterget.com。" | → Step ③ |
-| `false` (timeout) | "❌ 还没有检测到登录。请确认已在浏览器里登录 {SITE_URL}，然后回复'好了'。" | re-guide → wait → re-verify |
+| `logged_in: true` | "✅ 第 2 步完成：已登录 monsterget.com。" | → next unfinished step |
+| `false` (timeout) | "❌ 还没有检测到登录。请确认是在刚才安装扩展的同一个浏览器（Edge）里打开了 https://monsterget.com 并登录，然后回复'好了'。" | re-guide → wait → re-verify |
 
 > Before the check opens the browser, apply the Step 3c.1 rule: confirm the process actually started. A silent `start` failure looks exactly like "not logged in", and will send you chasing the wrong problem.
 
@@ -202,8 +225,9 @@ All three ✅ → `PREFLIGHT_DONE=true` → tell the user setup is complete → 
 
 **TELL**:
 
-> **第 3 步 — 登录 TikTok**
-> 请打开 https://www.tiktok.com ，登录你的 TikTok 账号。
+> **第 3 步 — 登录 TikTok（用同一个浏览器：Edge）**
+> 打开：**https://www.tiktok.com**
+> 登录你的 TikTok 账号。
 > （如果只抓取非 TikTok 平台，此步可跳过。）
 > 完成后回复"好了"，我会自动检测。
 
@@ -212,7 +236,7 @@ All three ✅ → `PREFLIGHT_DONE=true` → tell the user setup is complete → 
 | Result | REPORT | Next |
 |--------|--------|------|
 | `logged_in: true` | "✅ 第 3 步完成：已登录 TikTok。" | all three ✅ → setup complete |
-| `false` (timeout) | "❌ 还没有检测到 TikTok 登录。请在浏览器里登录后回复'好了'。" | re-guide → wait → re-verify |
+| `false` (timeout) | "❌ 还没有检测到 TikTok 登录。请确认是在同一个浏览器（Edge）里登录的，然后回复'好了'。" | re-guide → wait → re-verify |
 
 #### Check functions (library)
 
@@ -336,9 +360,9 @@ If scraping previously failed with an extension error, ask the user to verify th
 > ✅ The first-time guide was completed in Step 0. Not repeated here.
 >
 > If the user reports a missing extension or login problem, refer to Step 0's per-step guidance:
-> - Install extension: `{SITE_URL}/install`
-> - Log in to MonsterGet: `{SITE_URL}`
-> - Log in to the target site (TikTok): `https://www.tiktok.com`
+> - Install extension: https://monsterget.com/install
+> - Log in to MonsterGet: https://monsterget.com
+> - Log in to the target site (TikTok): https://www.tiktok.com
 
 ### Step 3 — Run a scrape (repeatable)
 
@@ -509,8 +533,8 @@ Key rules:
 | status endpoint → `404 delivery_not_found` (transient, <60s) | wrong taskId | re-run 3a and regenerate |
 | `delivery_not_found` **persists >60s** | **browser never started** — the open command silently failed (exe not in PATH), so the page never created the task | Verify with `tasklist /fi "IMAGENAME eq msedge.exe"`; retry with full exe path (Step 3c.1); if still absent, ask user to open the URL manually |
 | status stays `processing` > 5 min | extension missing, browser not logged in, or page closed | confirm extension installed + logged in + page still open; page must stay open until scrape completes |
-| status endpoint never reaches `ready`, page shows "extension not ready" | extension not installed / not enabled | install extension from `{SITE_URL}/install`, reload page |
-| page shows "please log in" | not logged in | log in on `{SITE_URL}`, reopen page |
+| status endpoint never reaches `ready`, page shows "extension not ready" | extension not installed / not enabled | install extension from https://monsterget.com/install, reload page |
+| page shows "please log in" | not logged in | log in on https://monsterget.com, reopen page |
 | Step 0 check ③ TikTok login failed | browser not logged into TikTok | log into TikTok, reply "done", AI re-checks |
 | download → `409 not_ready` | data not ready | keep polling |
 | download → `409 buffer_unavailable` | buffer cleared by TTL race | retry a few seconds |
@@ -548,43 +572,60 @@ The limit counts **running tasks**, not open windows:
 
 > Use the Chinese wording below **only** when the user writes to you in Chinese. For all other languages, translate the English text in the body yourself. Never show this appendix to the user.
 
-### Step 0 per-step messages (中文)
+### Step 0 messages (中文)
 
-> Send these **one at a time** — never all three at once.
+> Send these **one at a time** — never all three at once. Links must be the **full URL**, never a `{SITE_URL}` placeholder.
+
+**Phase A — 预检状态表**
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  准备情况检查
+  ① 安装 MonsterGet 扩展     ✅ 已完成 / ❌ 未安装
+  ② 登录 monsterget.com     ✅ 已登录 / ❌ 未登录
+  ③ 登录 TikTok             ✅ 已登录 / ❌ 未登录
+  提示：3 项都必须在同一个浏览器里完成。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+只引导标 ❌ 的项，顺序 ① → ② → ③。已是 ✅ 的项直接跳过，不要让用户重做。
 
 **① 安装扩展 — TELL**
 
 ```
-第 1 步 — 安装 MonsterGet 扩展
-请打开 {SITE_URL}/install ，按页面指引把扩展安装到 Edge（或 Chrome）。
+第 1 步 — 安装 MonsterGet 扩展（用 Edge，或 Chrome）
+打开安装页：https://monsterget.com/install
+按页面指引把扩展安装到 Edge（或 Chrome）。
 装好后回复"好了"，我会自动检测。
 ```
 
 - ✅ `✅ 第 1 步完成：扩展已安装。`
-- ❌ `❌ 还没有检测到扩展。请确认：① 是装在 Edge 或 Chrome 里吗？② 装完后刷新过页面吗？装好后回复"好了"。`
+- ❌ `❌ 还没有检测到扩展。请确认：① 是装在了 Edge 或 Chrome 里吗？（就是刚才打开安装页的那个浏览器）② 装完后刷新过 https://monsterget.com/install 页面吗？装好后回复"好了"。`
 
 **② 登录 monsterget.com — TELL**
 
 ```
-第 2 步 — 登录 monsterget.com
-请打开 {SITE_URL} ，注册或登录你的账号（游客登录也可以）。
+第 2 步 — 登录 monsterget.com（用同一个浏览器：Edge）
+打开：https://monsterget.com
+注册或登录你的账号（游客登录也可以）。
 完成后回复"好了"，我会自动检测登录状态。
 ```
 
 - ✅ `✅ 第 2 步完成：已登录 monsterget.com。`
-- ❌ `❌ 还没有检测到登录。请确认已在浏览器里登录 {SITE_URL}，然后回复"好了"。`
+- ❌ `❌ 还没有检测到登录。请确认是在刚才安装扩展的同一个浏览器（Edge）里打开了 https://monsterget.com 并登录，然后回复"好了"。`
 
 **③ 登录 TikTok — TELL**
 
 ```
-第 3 步 — 登录 TikTok
-请打开 https://www.tiktok.com ，登录你的 TikTok 账号。
+第 3 步 — 登录 TikTok（用同一个浏览器：Edge）
+打开：https://www.tiktok.com
+登录你的 TikTok 账号。
 （如果只抓取非 TikTok 平台，此步可跳过。）
 完成后回复"好了"，我会自动检测。
 ```
 
 - ✅ `✅ 第 3 步完成：已登录 TikTok。`
-- ❌ `❌ 还没有检测到 TikTok 登录。请在浏览器里登录后回复"好了"。`
+- ❌ `❌ 还没有检测到 TikTok 登录。请确认是在同一个浏览器（Edge）里登录的，然后回复"好了"。`
 
 **全部完成**
 
