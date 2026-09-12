@@ -40,7 +40,9 @@ MonsterGet はゲームを変えます：**収集はあなた自身のブラウ�
 
 主要な AI コーディングツール**すべて**に対応：
 
-`Claude Code` · `Codex` · `Cursor` · `Windsurf` · `ChatGPT` · `Cline` · `Aider` · `Continue`
+`Claude Code` · `Codex CLI` · `Cursor` · `Windsurf` · `Cline` · `Roo Code` · `Kilo Code` · `Copilot` · `Gemini CLI` · `Zed` · `Aider` · `Continue` · `Junie` · `Warp` · `Devin`
+
+このスキルは**エージェント非依存**です。シェル操作はすべて JSON を出力するプロトコル化された独立スクリプトに委譲されるため、Claude Code でも他のツールでも同じように動作します。
 
 オーケストレーションは AI が担当します：
 
@@ -100,9 +102,19 @@ MonsterGet はゲームを変えます：**収集はあなた自身のブラウ�
 
 > 💬 tiktok-scraper スキルをインストールして。https://github.com/rosstzc/monsterget.com-skills
 
-AI が自動でリポジトリをクローンし、セットアップしてくれます。
+AI が自動でリポジトリをクローンし、ランタイムをインストールして、自身を設定します。
 
-**その他のクライアント** —— SKILL.md の内容をカスタム指示に貼り付けてください。
+### AI が行うこと
+
+1. リポジトリをクローン
+2. `tiktok-scraper/` を `~/.monsterget/skill/` にコピー（**共有ランタイムディレクトリ**）
+3. 自分のカスタム指示 / rules ファイルに一行ポインタを追加
+
+ランタイムが一箇所（`~/.monsterget/skill/`）に置かれるため、**あなたのすべての AI クライアントがそれを共有します**。一度インストールすれば、Claude Code / Codex / Cursor / Cline のどれからでも使えます。
+
+**手動でインストールしたい？** [tiktok-scraper/INSTALL.md](tiktok-scraper/INSTALL.md) を参照してください（手動手順とクライアント別のポインタ位置）。
+
+**シェルを使えない環境**（ブラウザ版 ChatGPT など）？ [`tiktok-scraper/SKILL.md`](tiktok-scraper/SKILL.md) の内容をカスタム指示に貼り付け、AI の案内に従ってください。
 
 ## 🧠 アーキテクチャ（実際に起きていること）
 

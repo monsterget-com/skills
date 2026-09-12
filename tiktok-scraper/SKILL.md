@@ -1,6 +1,6 @@
 ---
 name: tiktok-scraper
-description: 🎁 Permanently free — 10M entries on signup, 1 concurrent window. Zero-install skill: open a browser URL, the extension + logged-in session do the rest. TikTok video search, creator discovery, hashtag collection, user video export to CSV. Works with Claude Code, Codex, Cursor, Windsurf, ChatGPT (any AI client). No Python packages, no credentials, no headless setup.
+description: 🎁 Permanently free — 10M entries on signup, 1 concurrent window. Zero-install skill: open a browser URL, the extension + logged-in session do the rest. TikTok video search, creator discovery, hashtag collection, user video export to CSV. Works with Claude Code, Codex, Cursor, Windsurf, Cline, ChatGPT (any AI client). No Python packages, no credentials, no headless setup.
 ---
 
 # TikTok Scraper
@@ -10,13 +10,11 @@ description: 🎁 Permanently free — 10M entries on signup, 1 concurrent windo
 
 ## What is this?
 
-A skill that lets **any AI assistant** (Claude Code, Codex, Cursor, Windsurf, ChatGPT…) scrape TikTok data — video search, creator discovery, hashtag collection, or a specific creator's videos — and return it as a CSV. You don't install Python packages, configure headless browsers, or manage credentials. The AI orchestrates: it generates a task ID, opens a URL in the **user's own browser**, and downloads the result.
+A skill that lets **any AI assistant** (Claude Code, Codex, Cursor, Windsurf, Cline, ChatGPT…) scrape TikTok data — video search, creator discovery, hashtag collection, or a specific creator's videos — and return it as a CSV. You don't install Python packages, configure headless browsers, or manage credentials. The AI orchestrates: it generates a task ID, opens a URL in the **user's own browser**, and downloads the result.
 
 **Why a browser + extension?** The actual scrape runs inside the user's real TikTok session (logged in, with the [MonsterGet](https://monsterget.com) browser extension installed). That's what keeps the accounts anti-ban safe. There is no server-side TikTok scraping — the data is collected right where the user is already logged in.
 
 **First-time setup (one-time, ~2 minutes):** the user registers a free account at [monsterget.com](https://monsterget.com) and installs the extension (Chrome/Edge). Everything after that is repeatable and instant.
-
-Scrape TikTok data through the MonsterGet platform running on the user's machine — **zero install, zero credentials, zero Python packages for the user**. The scrape runs in the **user's real browser** with an installed extension and logged-in session (anti-ban core). The AI just orchestrates.
 
 ## When to use
 
@@ -36,51 +34,76 @@ The zh-CN localized wording for the setup guidance is provided verbatim in the *
 ## Architecture (what actually happens)
 
 ```
-AI ──1. GET {SITE_URL}/api/agent/generate-task-id ──▶ {"taskId":"<uuid>"}
+AI ──1. GET {BASE_URL}/api/agent/generate-task-id ──▶ {"taskId":"<uuid>"}
 AI ──2. open browser page  {pagePath}?auto=1&agentTaskId={taskId}&{param}=...&count=N
 Page (user browser, logged in + extension) ──▶ POST /api/agent/scrape  (creates task with our taskId)
 Extension executes scrape in TikTok tab
 Page relays rows to server buffer
-AI ──3. GET {SITE_URL}/api/agent/delivery/task/{taskId}/status  ──▶ {status:"ready"}
-AI ──4. GET {SITE_URL}/api/agent/delivery/task/{taskId}/data    ──▶ CSV download
+AI ──3. GET {BASE_URL}/api/agent/delivery/task/{taskId}/status  ──▶ {status:"ready"}
+AI ──4. GET {BASE_URL}/api/agent/delivery/task/{taskId}/data    ──▶ CSV download
 ```
 
-**Key invariant (v0.5):** the AI generates the taskId itself *before* opening the browser, so it never needs to read the browser address bar.
+**Key invariant:** the AI generates the taskId itself *before* opening the browser, so it never needs to read the browser address bar.
 
 ## Configuration
 
 ```text
-BASE_URL       = https://monsterget.com      # API host (usually same as SITE_URL)
-STATE_FILE     = ~/.monsterget/preflight-state.json   # persisted check results across conversations
+BASE_URL   = https://monsterget.com      # API host (usually same as SITE_URL)
+SITE_URL   = https://monsterget.com      # page host
+STATE_FILE = ~/.monsterget/state.json    # persisted check results + browser hint
 ```
 
-`SITE_URL` (default: `https://monsterget.com`) — API host, same as `BASE_URL` in production.
-
-Change `SITE_URL`/`BASE_URL` when the platform is running locally (`http://localhost:8000`).
+Override for a local platform via environment variables: `MONSTERGET_BASE_URL=http://localhost:8000` (and optionally `MONSTERGET_SITE_URL`, `MONSTERGET_STATE_DIR`).
 
 **Link rule**: the user-facing links in Step 0 are written for production (`https://monsterget.com/install`, `https://monsterget.com`). If the platform runs locally, substitute the domain in those links with the configured `SITE_URL` — never show a bare `{SITE_URL}` placeholder to the user. Always produce a full, clickable URL.
 
-### Browser variables and state persistence
+## 🧩 Scripts — the runtime (read this before any step)
 
-These session variables are **set by Phase A of Step 0** and used everywhere (checks, scrapes, Step 3c/3c.1):
+**All shell work is delegated to four protocoled scripts.** Do not re-implement browser detection, process checks, or polling inline — that was the old design and it broke (shell state doesn't survive between tool calls, and the inline code was Windows-only).
 
-| Variable | Meaning |
-|----------|---------|
-| `BROWSER` | `edge` or `chrome` — which browser has the MonsterGet extension installed |
-| `BROWSER_EXE` | `msedge` or `chrome` — for shell `start` / `tasklist` commands |
-| `BROWSER_FULLPATH` | Full exe path for direct launch (fallback when `start` fails) |
-| `EXT_OK` | `true` / `false` — extension check result |
-| `MG_LOGIN_OK` | `true` / `false` — MonsterGet login check result |
-| `TK_LOGIN_OK` | `true` / `false` — TikTok login check result |
+**Resolve the scripts directory once, at the start of the session, and reuse it:**
 
-**State file** (`$STATE_FILE`): a small JSON file persisted between conversations:
+```bash
+# Canonical shared-runtime path (recommended — works with all clients)
+SCRIPTS="$HOME/.monsterget/skill/scripts"
 
-- **File**: `~/.monsterget/preflight-state.json`
-- **Purpose**: (a) record of when the checks last passed, (b) `BROWSER` hint so a new conversation knows where to look. **It is NEVER a substitute for re-running the checks — every new conversation re-verifies.**
-- **Contents**: `{browser, browser_exe, extension, monsterget_login, tiktok_login, checked_at}`
-- **Rule**: each new conversation reads the file for the browser hint, then re-runs all checks and overwrites it. The file is kept only for reference and user visibility.
+# If not found, the skill needs installing — stop here and tell the user.
+# (For development: point SCRIPTS at your local clone's scripts/ directory.)
+if [ ! -d "$SCRIPTS" ]; then
+  echo "Skill not installed: run the install instruction first." >&2
+  echo "SCRIPTS=$SCRIPTS" >&2
+  exit 1
+fi
+echo "SCRIPTS=$SCRIPTS"
+```
 
-### Cold-start contract (crucial — read before any step)
+Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
+
+| Script | What it does | Exit code |
+|--------|--------------|-----------|
+| `detect-browser.sh` | Finds which browser holds the MonsterGet extension. Writes `browser`, `browser_exe`, `browser_fullpath`, `os`, `extension` to state. | 0 = found, 1 = not found |
+| `check-login.sh <monsterget\|tiktok>` | Opens the platform's login-check page, polls up to 60s (or `MONSTERGET_POLLS` × 5s). Writes the login result to state. | 0 = logged in, 1 = not |
+| `preflight.sh` | Silent full preflight: extension → platform reachability → both logins. Short 3×5s login probes. | 0 = all pass, 1 = something failed |
+| `run-scrape.sh <pagePath> <param> <value> [count]` | End-to-end scrape: taskId → open browser → verify process → poll → download CSV. | 0 = CSV downloaded, 1 = failed |
+
+**Every script prints exactly one JSON object to stdout.** Parse that — it is the authoritative result. Do not ask the user what happened.
+
+**Why scripts instead of inline shell:** each script is self-contained (reads `state.json` → does work → writes `state.json`), so nothing depends on shell variables surviving between tool calls. And they branch on the OS, so they work on Windows (Git Bash), macOS, and Linux alike.
+
+### State file (`~/.monsterget/state.json`)
+
+A small JSON key/value store persisted between conversations:
+
+```json
+{"os":"windows","browser":"edge","browser_exe":"msedge","extension":"true",
+ "monsterget_login":"true","tiktok_login":"true","checked_at":"2026-09-13T10:00:00Z"}
+```
+
+- **Purpose**: (a) a record of when the checks last passed, (b) a browser hint so a new conversation knows where to look, (c) the last taskId/URL.
+- **It is NEVER a substitute for re-running the checks — every new conversation re-verifies.**
+- The scripts read and write this file themselves. You generally don't need to touch it directly (though `cat ~/.monsterget/state.json` is a fine way to see the last known status).
+
+## Cold-start contract (crucial — read before any step)
 
 **`PREFLIGHT_DONE` is `false` at the start of every new conversation.** Memory, prior conversations, and "I already told the user this before" must **never** set it.
 
@@ -97,13 +120,13 @@ Both paths end the same way: `PREFLIGHT_DONE=true`, only after checks actually p
 - If Step 0.6 fails, escalate to the Step 0 flow (start at the failed step) — do not proceed to a scrape.
 - Never infer "verified" from the fact that a previous scrape succeeded. Every new conversation re-verifies.
 
-**Key insight**: the check functions run programmatically, not by asking the user. "Don't bother the user" means "verify silently", never "skip verification".
+**Key insight**: the check scripts run programmatically, not by asking the user. "Don't bother the user" means "verify silently", never "skip verification".
 
 ## Scrape types
 
 > ⚠️ **This table may be stale.** New scrapers are NOT auto-synced into this skill file. Before mapping the user's request to a type, fetch the live list (zero-auth, read-only) and use it if it differs from the table:
 > ```bash
-> curl -s {BASE_URL}/api/agent/scrapers
+> curl -s "$BASE_URL/api/agent/scrapers"
 > ```
 > Use the `type` + `page` + `param` + `countMax` values returned. The table below is a snapshot that matches current scrapers.
 
@@ -128,15 +151,15 @@ Username accepts `@name` or full profile URL (server normalizes).
 > │     ├── [Path A] No prior knowledge / user says not set up            │
 > │     │     │                                                           │
 > │     │     └── Step 0: pre-check all 3 → show status → guide ❌        │
-> │     │           ① install extension  → _check_extension              │
-> │     │           ② login monsterget   → _check_monsterget_login        │
-> │     │           ③ login TikTok       → _check_target_login            │
+> │     │           ① install extension  → detect-browser.sh             │
+> │     │           ② login monsterget   → check-login.sh monsterget      │
+> │     │           ③ login TikTok       → check-login.sh tiktok          │
 > │     │           any ❌ → re-guide → re-verify (do NOT advance)        │
 > │     │           all ✅ → PREFLIGHT_DONE=true → proceed to Step 1      │
 > │     │                                                                 │
 > │     ├── [Path B] Setup presumed done (memory / prior session)         │
 > │     │     │                                                           │
-> │     │     └── Step 0.6: silent programmatic preflight (calls checks)  │
+> │     │     └── Step 0.6: preflight.sh (silent)                         │
 > │     │           all pass → PREFLIGHT_DONE=true, continue              │
 > │     │           any fail → escalate to Step 0 flow                   │
 > │     │                                                                 │
@@ -149,16 +172,16 @@ Username accepts `@name` or full profile URL (server normalizes).
 
 ### ⚡ Automation contract (read this first)
 
-**Opening the browser is fire-and-forget — but launching it is NOT.** Never pause to ask the user "is it open?" or "shall I continue?". Do **not** skip the silent process check in Step 3c.1 — "don't ask the user" means "verify programmatically instead", not "verify nothing".
+**Opening the browser is fire-and-forget — but launching it is NOT.** Never pause to ask the user "is it open?" or "shall I continue?". The `run-scrape.sh` script already verifies the process started programmatically — do not skip that by not reading its output.
 
-Once you run the browser-open command, the page executes on its own — it creates the task with the taskId you already hold and the extension runs it. Your job is to *immediately* start polling. There is nothing to wait for from the user.
+Once the script opens the browser, the page executes on its own — it creates the task with the taskId the script already generated and the extension runs it. The script polls immediately.
 
 Rules that make the AI fast instead of slow:
 
-1. **Open + verify + poll in one shot.** Run the browser-open command, the Step 3c.1 process check, and the poll loop together (see Step 3c). Do not put a message to the user between them.
+1. **Run the scrape script once and let it do everything.** It opens, verifies, polls, and downloads in a single call. Do not split it into separate commands.
 2. **Never wait for user confirmation** after opening the browser. The user does not need to do anything (unless they aren't logged in yet — that's the one exception, and it shows up as the scrape never reaching `ready`).
-3. **Polling already detects completion.** The poll loop exits the moment the status is `ready` (or `failed`). You do not need to ask the user whether the task finished — the status endpoint tells you.
-4. **Multiple scrapes run back-to-back, unattended.** When the user asks for several scrapes, run them in a loop: open → verify → poll → download → open the next one. Do **not** stop and report back between tasks. See "Running multiple scrapes" below.
+3. **Polling already detects completion.** The script exits the moment the status is `ready` (or `failed`). You do not need to ask the user whether the task finished.
+4. **Multiple scrapes run back-to-back, unattended.** Call the script in a loop — do **not** stop and report back between tasks. See "Running multiple scrapes" below.
 5. **A finished task frees the concurrency slot.** The scrape window may stay open — it does not block the next task. Only a task still `pending`/`processing` counts against the limit.
 6. **Only speak to the user** when: first-time setup (Step 0), a scrape fails, or all requested scrapes are done and you're presenting results.
 
@@ -179,18 +202,11 @@ Rules that make the AI fast instead of slow:
 
 #### Phase A — Silent pre-check (before telling the user anything)
 
-**A1. Determine the browser first** (never guess, never silently default to Edge).
-
-Read the state file for a browser hint (informational only — the actual check re-verifies), then run `_detect_browser()`:
+**A1. Determine the browser first** (never guess, never silently default to Edge):
 
 ```bash
-# Load previous browser hint (not a substitute for detection)
-if [ -f "$STATE_FILE" ]; then
-  PREV_BROWSER=$(grep -o '"browser":"[^"]*"' "$STATE_FILE" | cut -d'"' -f4)
-fi
-
-# Actually detect which browser now has the extension
-_detect_browser
+bash "$SCRIPTS/detect-browser.sh"
+# → {"os":"windows","browser":"edge","browser_exe":"msedge","extension":true}
 ```
 
 **Then name the browser explicitly to the user** (never leave it unspecified):
@@ -201,7 +217,14 @@ _detect_browser
 | `chrome` | ✅ 扩展在 **Chrome** 里，以下操作都用 Chrome。 |
 | `none` | ❌ 还没检测到扩展，先安装扩展并确定用哪个浏览器。 |
 
-**A2. Run the 3 short-probe checks** against the detected browser (poll only 3×5s per login check — enough to detect an already-finished setup). If `BROWSER=none`, skip checks and go directly to Phase B Step ① (after extension is installed, the check after Step ① detects the browser).
+**A2. Check the two logins** against the detected browser (short probes — 3 polls is enough to detect an already-finished setup):
+
+```bash
+MONSTERGET_POLLS=3 bash "$SCRIPTS/check-login.sh" monsterget   # → {"logged_in":true,...}
+MONSTERGET_POLLS=3 bash "$SCRIPTS/check-login.sh" tiktok       # → {"logged_in":true,...}
+```
+
+If `browser` is `none`, skip the login checks and go directly to Phase B Step ① — after the extension is installed, step ① re-detects the browser.
 
 **A3. Show the status table in the user's language, naming the browser**:
 
@@ -215,8 +238,6 @@ _detect_browser
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Set session variables: `EXT_OK`, `MG_LOGIN_OK`, `TK_LOGIN_OK` based on results.
-
 **A4. Enter Phase B** — guide only the rows marked ❌, in order ①→②→③. Rows already ✅ are skipped silently — do not ask the user to redo them.
 
 #### The per-step protocol (for each unfinished step)
@@ -225,11 +246,17 @@ Set session variables: `EXT_OK`, `MG_LOGIN_OK`, `TK_LOGIN_OK` based on results.
 for each unfinished step, in order:
   1. TELL    one short message: what to do + the FULL clickable URL + which browser
   2. WAIT    wait for the user to say they're done — never advance early
-  3. VERIFY  run THAT step's check function (library below) — programmatically
+  3. VERIFY  run THAT step's check script (table below) — programmatically
   4. REPORT  "✅ Step N done" or "❌ Step N failed: <exactly how to fix>"
   5. if ❌   → re-guide → wait → re-verify. Loop until ✅. Do NOT advance.
   → next unfinished step
 ```
+
+| Step | VERIFY command | Pass condition |
+|------|----------------|----------------|
+| ① Extension | `bash "$SCRIPTS/detect-browser.sh"` | exit 0, `"extension":true` |
+| ② MonsterGet login | `bash "$SCRIPTS/check-login.sh" monsterget` | exit 0, `"logged_in":true` |
+| ③ TikTok login | `bash "$SCRIPTS/check-login.sh" tiktok` | exit 0, `"logged_in":true` |
 
 All three ✅ (from pre-check or guidance) → `PREFLIGHT_DONE=true` → tell the user setup is complete → Step 1.
 
@@ -237,27 +264,27 @@ All three ✅ (from pre-check or guidance) → `PREFLIGHT_DONE=true` → tell th
 
 **TELL** — pick the wording based on what Phase A detected:
 
-*If the extension was already detected* (`BROWSER=edge|chrome`):
+*If the extension was already detected* (`browser=edge|chrome`):
 > **第 1 步 — 扩展已就绪**
 > 已检测到 MonsterGet 扩展在 **{BROWSER}** 里，无需重装。
 > 后续 2 步都会用 **{BROWSER}**。
 
-*If not detected* (`BROWSER=none`):
+*If not detected* (`browser=none`):
 > **第 1 步 — 安装 MonsterGet 扩展**
 > 打开安装页：**https://monsterget.com/install**
 > 把扩展装到 **Edge 或 Chrome**（选一个，后面 3 步都用它）。
 > 装好后回复"好了，用 Edge"或"好了，用 Chrome"，我会检测并确认浏览器。
 
-**VERIFY**: re-run `_detect_browser()` (the extension may have just been installed, so `BROWSER` can change from `none`), then `_check_extension` → `ok` | `missing`
+**VERIFY**: re-run `detect-browser.sh` (the extension may have just been installed, so `browser` can change from `none`).
 
 | Result | REPORT | Next |
 |--------|--------|------|
-| `ok` | "✅ 第 1 步完成：扩展已安装在 **{BROWSER}** 里。" | → next unfinished step |
-| `missing` | "❌ 还没检测到扩展。请确认：① 扩展装好了吗？② 装在了 Edge 还是 Chrome？③ 装完后刷新过 https://monsterget.com/install 吗？装好后回复'好了'。" | re-guide → wait → re-verify |
+| `extension: true` | "✅ 第 1 步完成：扩展已安装在 **{BROWSER}** 里。" | → next unfinished step |
+| `extension: false` | "❌ 还没检测到扩展。请确认：① 扩展装好了吗？② 装在了 Edge 还是 Chrome？③ 装完后刷新过 https://monsterget.com/install 吗？装好后回复'好了'。" | re-guide → wait → re-verify |
 
 > 🔁 **After a successful detection, state the browser once more in the next step's message** — so the user never has to remember which browser they picked.
 
-**🚧 Blocking rule**: while ① is `missing`, do **not** advance to ② or ③ — both logins must happen in the browser that has the extension.
+**🚧 Blocking rule**: while ① is `false`, do **not** advance to ② or ③ — both logins must happen in the browser that has the extension.
 
 #### Step ② — Log in to monsterget.com
 
@@ -268,14 +295,14 @@ All three ✅ (from pre-check or guidance) → `PREFLIGHT_DONE=true` → tell th
 > 注册或登录你的账号（游客登录也可以）。
 > 完成后回复"好了"，我会自动检测登录状态。
 
-**VERIFY**: `_check_monsterget_login` → polls up to 60s (12 × 5s)
+**VERIFY**: `bash "$SCRIPTS/check-login.sh" monsterget` → polls up to 60s (12 × 5s)
 
 | Result | REPORT | Next |
 |--------|--------|------|
 | `logged_in: true` | "✅ 第 2 步完成：已登录 monsterget.com。" | → next unfinished step |
-| `false` (timeout) | "❌ 还没有检测到登录。请确认是在刚才安装扩展的同一个浏览器（{BROWSER}）里打开了 https://monsterget.com 并登录，然后回复'好了'。" | re-guide → wait → re-verify |
+| `logged_in: false` (timeout) | "❌ 还没有检测到登录。请确认是在刚才安装扩展的同一个浏览器（{BROWSER}）里打开了 https://monsterget.com 并登录，然后回复'好了'。" | re-guide → wait → re-verify |
 
-> Before the check opens the browser, apply the Step 3c.1 rule: confirm the process actually started. A silent `start` failure looks exactly like "not logged in", and will send you chasing the wrong problem.
+> A silent browser-launch failure looks exactly like "not logged in" and will send you chasing the wrong problem. The script already retries the launch via the full exe path and reports `browser` in its output — check that field before blaming the user's login.
 
 #### Step ③ — Log in to TikTok
 
@@ -287,90 +314,19 @@ All three ✅ (from pre-check or guidance) → `PREFLIGHT_DONE=true` → tell th
 > （如果只抓取非 TikTok 平台，此步可跳过。）
 > 完成后回复"好了"，我会自动检测。
 
-**VERIFY**: `_check_target_login` → polls up to 60s (12 × 5s)
+**VERIFY**: `bash "$SCRIPTS/check-login.sh" tiktok` → polls up to 60s (12 × 5s)
 
 | Result | REPORT | Next |
 |--------|--------|------|
 | `logged_in: true` | "✅ 第 3 步完成：已登录 TikTok。" | all three ✅ → setup complete |
-| `false` (timeout) | "❌ 还没有检测到 TikTok 登录。请确认是在同一个浏览器（{BROWSER}）里登录的，然后回复'好了'。" | re-guide → wait → re-verify |
-
-#### Browser detection + check functions (library)
-
-> **Run `_detect_browser()` FIRST, before any other check.** It sets `BROWSER`, `BROWSER_EXE`, `BROWSER_FULLPATH`. Every check below then uses those variables — never a hardcoded `msedge`. If you skip detection, you will check the wrong browser and mislead the user.
-
-```bash
-# Browser detection — scans both browsers, returns which one has the extension.
-# Sets the session variables below. Run BEFORE any other check.
-_detect_browser() {
-  EDGE_PREF="$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Preferences"
-  CHROME_PREF="$HOME/AppData/Local/Google/Chrome/User Data/Default/Preferences"
-  if [ -f "$EDGE_PREF" ] && grep -q "MonsterGet" "$EDGE_PREF" 2>/dev/null; then
-    BROWSER="edge"; BROWSER_EXE="msedge"
-    BROWSER_FULLPATH="/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
-  elif [ -f "$CHROME_PREF" ] && grep -q "MonsterGet" "$CHROME_PREF" 2>/dev/null; then
-    BROWSER="chrome"; BROWSER_EXE="chrome"
-    BROWSER_FULLPATH="/c/Program Files/Google/Chrome/Application/chrome.exe"
-  else
-    BROWSER="none"; BROWSER_EXE=""; BROWSER_FULLPATH=""
-  fi
-  echo "$BROWSER"
-}
-```
-
-```bash
-# ① Extension install check — uses BROWSER from _detect_browser
-#    Returns: ok | missing
-_check_extension() {
-  if [ "$BROWSER" = "edge" ] || [ "$BROWSER" = "chrome" ]; then echo "ok"; else echo "missing"; fi
-}
-```
-
-```bash
-# ② MonsterGet login check (needs a browser page to report back)
-#    Uses $BROWSER_EXE / $BROWSER_FULLPATH — same browser as the extension.
-_check_monsterget_login() {
-  local MG_ID=$(curl -s "$BASE_URL/api/agent/generate-task-id" | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
-  if command -v "$BROWSER_EXE" >/dev/null 2>&1; then
-    start "$BROWSER_EXE" "$SITE_URL/login-check.html?auto=1&agentTaskId=$MG_ID"
-  else
-    "$BROWSER_FULLPATH" "$SITE_URL/login-check.html?auto=1&agentTaskId=$MG_ID"
-  fi
-  for i in $(seq 1 12); do
-    local R=$(curl -s "$BASE_URL/api/agent/login-check/$MG_ID")
-    echo "$R" | grep -q '"logged_in"' && { echo "$R"; return; }
-    sleep 5
-  done
-  echo '{"logged_in":false}'
-}
-```
-
-```bash
-# ③ Target-site (TikTok) login check (needs a browser page to report back)
-#    Uses $BROWSER_EXE / $BROWSER_FULLPATH — same browser as the extension.
-_check_target_login() {
-  local T=$(curl -s -X POST "$BASE_URL/api/agent/login-check-target" \
-    -H "Content-Type: application/json" -d '{"target":"tiktok"}')
-  local TK_ID=$(echo "$T" | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
-  if command -v "$BROWSER_EXE" >/dev/null 2>&1; then
-    start "$BROWSER_EXE" "$SITE_URL/login-check-target.html?auto=1&agentTaskId=$TK_ID&target=tiktok"
-  else
-    "$BROWSER_FULLPATH" "$SITE_URL/login-check-target.html?auto=1&agentTaskId=$TK_ID&target=tiktok"
-  fi
-  for i in $(seq 1 12); do
-    local R=$(curl -s "$BASE_URL/api/agent/login-check/$TK_ID")
-    echo "$R" | grep -q '"logged_in"' && { echo "$R"; return; }
-    sleep 5
-  done
-  echo '{"logged_in":false}'
-}
-```
+| `logged_in: false` (timeout) | "❌ 还没有检测到 TikTok 登录。请确认是在同一个浏览器（{BROWSER}）里登录的，然后回复'好了'。" | re-guide → wait → re-verify |
 
 #### Retry rules (same per-step loop, when a step fails)
 
 1. **Never advance past a failed step.** Only the step that failed is re-checked; steps that already passed are not re-run.
 2. **Poll timeout**: 60 seconds max per browser-based check (12 × 5s). Timeout counts as fail.
-3. **User wait**: after opening the browser for a check, poll immediately — don't interrupt the user. Only speak when reporting ✅/❌.
-4. **Blocking**: if ① (extension) is `missing`, do not attempt ② or ③.
+3. **User wait**: the check script opens the browser and polls immediately — don't interrupt the user. Only speak when reporting ✅/❌.
+4. **Blocking**: if ① (extension) is `false`, do not attempt ② or ③.
 
 #### Completion
 
@@ -378,87 +334,40 @@ After all three steps pass, tell the user (in their language):
 
 > ✅ 全部准备完成！开始抓取...
 
-Then save the result to the state file and set the session flag:
+Then set `PREFLIGHT_DONE=true` and go to Step 1. Subsequent scrapes in this session skip Steps 0/0.6 entirely.
 
-```bash
-mkdir -p "$(dirname "$STATE_FILE")"
-cat > "$STATE_FILE" << EOFSTATE
-{
-  "browser": "${BROWSER:-edge}",
-  "browser_exe": "${BROWSER_EXE:-msedge}",
-  "extension": ${EXT_OK:-false},
-  "monsterget_login": ${MG_LOGIN_OK:-false},
-  "tiktok_login": ${TK_LOGIN_OK:-false},
-  "checked_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-}
-EOFSTATE
-```
-
-Then set `PREFLIGHT_DONE=true` (session variable) and go to Step 1. Subsequent scrapes in this session skip Steps 0/0.6 entirely.
+The check scripts have already written the results to `~/.monsterget/state.json` (including `checked_at`) — no manual write needed.
 
 #### State persistence rules (re-check every conversation)
 
-1. **Every new conversation reads** `$STATE_FILE` (if it exists) for the browser hint and the last check timestamp. This is informational only — it helps you tell the user "上次检查通过于 2026-09-12" and which browser.
-2. **Every new conversation re-runs** all checks in Phase A. The saved results are authority only for the user's visibility, never for skipping verification.
+1. **Every new conversation may read** `~/.monsterget/state.json` for the browser hint and the last check timestamp. This is informational only — it helps you tell the user "上次检查通过于 2026-09-12" and which browser.
+2. **Every new conversation re-runs** all checks. The saved results are authority only for the user's visibility, never for skipping verification.
 3. **Never skip Phase A** because the state file says everything was OK. `PREFLIGHT_DONE` is always `false` at session start — cold-start contract.
-4. After re-checking, **overwrite** the state file with fresh results and timestamp.
+4. The scripts **overwrite** the state file with fresh results and a timestamp on every check.
 
 ### Step 0.6 — 🪄 Silent preflight (programmatic, ~20 seconds)
 
-> **Path B entry** — use when you have prior knowledge the setup is already done (memory, a previous session, or the user says "already installed"). Runs checks programmatically. **If in doubt about the setup state, run Step 0 (Path A) instead.**
+> **Path B entry** — use when you have prior knowledge the setup is already done (memory, a previous session, or the user says "already installed"). **If in doubt about the setup state, run Step 0 (Path A) instead.**
 
-A silent programmatic check — no user interaction required, no questions asked.  
-If all pass → `PREFLIGHT_DONE=true`, proceed to Step 1. If any fail → escalate to the user with the Step 0 flow (start at the failed step's TELL).
+One command does the whole silent preflight — no user interaction, no questions asked:
 
 ```bash
-# 0. Detect the browser FIRST (never assume Edge)
-_detect_browser   # sets BROWSER, BROWSER_EXE, BROWSER_FULLPATH
-
-# ① Extension install check (local file scan, 0.1s, no browser needed)
-EXT_RESULT=$(_check_extension)   # defined in Step 0
-if [ "$EXT_RESULT" = "missing" ]; then
-  echo "FAIL: extension not found"
-  # → escalate to Step 0 ① (interactive). Do NOT proceed to a scrape.
-fi
-
-# ② MonsterGet reachability (API probe, 1s)
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/agent/generate-task-id")
-if [ "$HTTP_CODE" != "200" ]; then
-  echo "FAIL: platform unreachable (HTTP $HTTP_CODE)"
-  # → tell user platform isn't reachable, stop. Do NOT proceed to a scrape.
-fi
-
-# ③ Browser launch + login check — generate taskId, open a login-check page, poll
-#    Uses $BROWSER_EXE / $BROWSER_FULLPATH (same browser as the extension)
-TASK_ID=$(curl -s "$BASE_URL/api/agent/generate-task-id" | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
-if command -v "$BROWSER_EXE" >/dev/null 2>&1; then
-  start "$BROWSER_EXE" "$SITE_URL/login-check.html?auto=1&agentTaskId=$TASK_ID"
-else
-  "$BROWSER_FULLPATH" "$SITE_URL/login-check.html?auto=1&agentTaskId=$TASK_ID"
-fi
-# verify the browser process started (same rule as Step 3c.1)
-sleep 3
-if tasklist /fi "IMAGENAME eq $BROWSER_EXE.exe" 2>/dev/null | grep -q "$BROWSER_EXE"; then
-  echo "OK: browser started"
-else
-  echo "FAIL: browser did not start — retry with full exe path (see Step 3c.1)"
-fi
-
-LOGIN_OK="false"
-for i in 1 2 3; do
-  RESULT=$(curl -s "$BASE_URL/api/agent/login-check/$TASK_ID")
-  echo "$RESULT" | grep -q '"logged_in"' && { LOGIN_OK="true"; break; }
-  sleep 2
-done
-if [ "$LOGIN_OK" != "true" ]; then
-  echo "FAIL: not logged in"
-  # → escalate to Step 0 ② (interactive login guidance), stop
-fi
+bash "$SCRIPTS/preflight.sh"
+# → {"extension":true,"platform_reachable":true,"monsterget_login":true,
+#    "tiktok_login":true,"browser":"edge","os":"windows"}
 ```
 
-**On failure**: escalate to the interactive Step 0 flow, starting at the step that failed. Wait for the user's "done", then re-verify (via the step's check, not the whole 0.6).
+It runs, in order: `detect-browser.sh` → platform reachability probe → `check-login.sh monsterget` → `check-login.sh tiktok` (short 3×5s probes).
 
-**On success**: set `PREFLIGHT_DONE=true` (and `SESSION_PREFLIGHT_PASSED=true`). Subsequent scrapes this session skip Steps 0/0.6 entirely.
+- **Exit 0 (all true)** → set `PREFLIGHT_DONE=true`, proceed to Step 1.
+- **Exit 1** → read which field is `false` and escalate to the **interactive Step 0 flow, starting at that step's TELL**. Wait for the user's "done", then re-verify with that single step's script — do not re-run the whole preflight.
+
+| Failed field | Escalate to |
+|--------------|-------------|
+| `extension: false` | Step 0 ① |
+| `platform_reachable: false` | Tell the user the platform isn't reachable (network/region). Give them the URL to check. Stop. |
+| `monsterget_login: false` | Step 0 ② |
+| `tiktok_login: false` | Step 0 ③ |
 
 ### Step 1 — Platform reachability check
 
@@ -467,14 +376,11 @@ fi
 Quickly probe whether the platform is reachable:
 
 ```bash
-# Reachability
-curl -s -o /dev/null -w "%{http_code}" {BASE_URL}/api/agent/generate-task-id
+curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/agent/generate-task-id"
 ```
 
 - `200` → reachable. Continue.
 - Anything else → tell the user the platform isn't reachable yet. For local: ask them to start the backend. Then stop.
-
-If scraping previously failed with an extension error, ask the user to verify the extension is installed and the browser is logged in (see Troubleshooting).
 
 ### Step 2 — First-time setup (folded into Step 0)
 
@@ -487,18 +393,13 @@ If scraping previously failed with an extension error, ask the user to verify th
 
 ### Step 3 — Run a scrape (repeatable)
 
-#### 3a. Generate a taskId (zero-auth, no token needed)
+**One command does the whole thing** — taskId, browser launch, process verification, polling, download:
 
 ```bash
-TASK_ID=$(curl -s {BASE_URL}/api/agent/generate-task-id | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
-echo "taskId=$TASK_ID"
+bash "$SCRIPTS/run-scrape.sh" <pagePath> <param> <value> [count]
 ```
 
-Keep this id — it is the key for everything that follows.
-
-#### 3b. Determine page and params from the user's request
-
-Map intent → `{pagePath}?auto=1&agentTaskId={TASK_ID}&{param}={value}&count={N}`:
+#### 3a. Map the user's request to pagePath + param
 
 | User intent | pagePath | param |
 |-------------|----------|-------|
@@ -510,167 +411,82 @@ Map intent → `{pagePath}?auto=1&agentTaskId={TASK_ID}&{param}={value}&count={N
 
 If count isn't given, use the type default (30 for tag/user search, 50 for video/user-videos). Cap at 300. Path segment separator is a **hyphen** (`/tiktok-search-video`), never an underscore.
 
-#### 3c. Open the page in the chosen browser — **fire-and-forget**
-
-⚠️ **URL must be wrapped in double quotes** — otherwise the shell treats `&` as a command separator and truncates the query.
-
-> 🚀 **Before you open the browser**: run `_detect_browser()` (Step 0.6) to set `BROWSER` / `BROWSER_EXE` / `BROWSER_FULLPATH`. Every command below uses these variables — never hardcode a browser name.
+#### 3b. Run it
 
 ```bash
-# Open in the detected browser (Windows — works for edge or chrome)
-# Uses $BROWSER_EXE — whichever browser the extension is installed in
-start "$BROWSER_EXE" "https://monsterget.com/tiktok-search-video?auto=1&agentTaskId=$TASK_ID&query=mike&count=10"
+bash "$SCRIPTS/run-scrape.sh" /tiktok-search-video query "mike tyson" 20
+# → {"status":"ready","taskId":"...","file":"mike-20-20260905_tiktok_video_ab12cd.csv","rowCount":20,"url":"..."}
 ```
 
-If `start` isn't available, use the full exe path:
-```bash
-"$BROWSER_FULLPATH" "https://monsterget.com/tiktok-search-video?auto=1&agentTaskId=$TASK_ID&query=mike&count=10"
-```
+The script handles, in order:
+1. Re-detect the browser (never assumes Edge)
+2. Generate a taskId
+3. Build the URL (`{SITE_URL}{pagePath}?auto=1&agentTaskId=...&{param}=...&count=N`) — **values are URL-encoded by the script**, so spaces and Chinese characters are safe
+4. Open it in the detected browser (fire-and-forget)
+5. **Verify the browser process actually started** (up to 3s, then a full-path retry) — a silent launch failure otherwise looks like a task that never appears
+6. Poll status every 5s until `ready` / `failed` / `downloaded` / `not_found` (5-minute timeout)
+7. Download the CSV with the server's semantic filename
 
-> 🚀 **Do NOT ask the user** "is it open?" after opening the browser. Do not pause, do not read the URL bar. The page creates the task with the taskId you already hold and runs automatically.
->
-> ⚠️ **But DO verify the browser process actually started** before pollling (Step 3c.1). The open command can fail silently (e.g. `$BROWSER_EXE` not in PATH in Git Bash). If the browser never started, every poll will return `not_found`. Verify programmatically — never by asking the user.
+> 🚀 **Do NOT ask the user** "is it open?" after the browser opens. Do not pause, do not read the URL bar. Read the script's JSON output instead — it tells you whether the launch succeeded.
 
-#### 3c.1 — Verify the browser process started (new, read this)
+#### 3c. Read the result
 
-After the open command, immediately verify the process exists — **do not ask the user**:
+| `status` in output | Meaning | What to do |
+|--------------------|---------|------------|
+| `ready` | CSV downloaded — `file` is the filename, `rowCount` the row count | Show the user a preview + the path |
+| `not_found` | The page never created the task (launch failed or extension not ready) | Check the `error` field; ask the user to open `url` manually |
+| `timeout` | Not ready in 5 min | Extension missing, not logged in, or tab closed — see Troubleshooting |
+| `failed` | Task failed on the platform | Report the error |
+| `already_downloaded` | The CSV is tombstoned (one download only) | Run again — a new taskId is generated |
 
-```bash
-# Wait up to 3 seconds for the process to appear
-# $BROWSER_EXE was set by _detect_browser() — the browser that has the extension
-BROWSER_STARTED=false
-for i in 1 2 3; do
-  if tasklist /fi "IMAGENAME eq $BROWSER_EXE.exe" 2>/dev/null | grep -qi "$BROWSER_EXE"; then
-    BROWSER_STARTED=true
-    echo "✅ browser process confirmed ($BROWSER_EXE.exe)"
-    break
-  fi
-  sleep 1
-done
-```
-
-**If `BROWSER_STARTED=false`**: the `start` command failed silently. Try the full exe path explicitly — using the path that `_detect_browser()` already found:
-
-```bash
-# Retry with the full path of the detected browser
-"$BROWSER_FULLPATH" "{URL}"
-
-# Re-check after retry
-sleep 2
-if tasklist /fi "IMAGENAME eq $BROWSER_EXE.exe" 2>/dev/null | grep -qi "$BROWSER_EXE"; then
-  echo "✅ browser started via full path"
-  BROWSER_STARTED=true
-fi
-```
-
-> If `$BROWSER_FULLPATH` doesn't exist either, fall back to the canonical paths for the detected browser:
-> ```bash
-> # Edge
-> "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" "{URL}"
-> # Chrome
-> "/c/Program Files/Google/Chrome/Application/chrome.exe" "{URL}"
-> ```
-> Do NOT blindly try the other browser — the extension only exists in one of them (that's what `_detect_browser` determined). Opening the wrong browser creates a task that can never complete.
-
-**If still not running after full-path retry**: stop and tell the user "I tried to open the browser but the process did not start. Please open `{URL}` manually in the browser where the extension is installed, then reply 'done'."
-
-**If confirmed running**: proceed to Step 3d immediately. No user message needed.
-
-#### 3d. Poll until ready — **start immediately, start in the background**
-
-Open the browser **and start polling in the same step**. Use your tool's run_in_background feature for the poll loop so it works while you can still interact with the user (or start the next task in serial mode):
-
-```bash
-# Bash / Mac / Linux — poll every 5s, up to 60 times (5-minute timeout)
-for i in $(seq 1 60); do
-  STATUS=$(curl -s "https://monsterget.com/api/agent/delivery/task/$TASK_ID/status")
-  echo "$STATUS" | grep -q '"status":"ready"' && break
-  echo "$STATUS" | grep -qE '"status":"(downloaded|failed)"|not_found' && break
-  sleep 5
-done
-```
-
-```bat
-:: Windows cmd — poll every 5s, up to 60 times (5-minute timeout)
-for /l %i in (1,1,60) do (
-  curl -s "https://monsterget.com/api/agent/delivery/task/$TASK_ID/status" | find "ready"
-  if not errorlevel 1 goto download
-  timeout /t 5 /nobreak >nul
-)
-:download
-```
-
-Status meanings:
-| status | meaning |
-|--------|---------|
-| `processing` | still running → keep polling |
-| `ready` | data ready → download |
-| `downloaded` | already fetched → can't re-download |
-
-Response example: `{"taskId":"...","status":"ready","filename":"mike-10-20260905_tiktok_video_ab12cd.csv","resultCount":10,"terminal":true}`
-
-#### 3e. Download the CSV
-
-```bash
-curl -OJ "https://monsterget.com/api/agent/delivery/task/$TASK_ID/data"
-```
-
-`-OJ` uses the server's semantic filename (`Content-Disposition`). The file is tombstoned after one download (repeat → HTTP 410). Download is only available for 24h.
-
-#### 3f. Verify & present
+#### 3d. Verify & present
 
 Show the user the first rows of the CSV so they can confirm the data is correct. State the saved file path.
 
 ### Step 4 — Bulk creator profiles (optional)
 
-When the user needs profile data for **multiple creators at once** (e.g., "get profiles of @mike, @jenifer, @tiktok"), use bulk mode with comma-separated usernames:
+When the user needs profile data for **multiple creators at once** (e.g., "get profiles of @mike, @jenifer, @tiktok"), use the `usernames` param with comma-separated values:
 
 ```bash
-TASK_ID=$(curl -s {BASE_URL}/api/agent/generate-task-id | sed -n 's/.*"taskId":"\([^"]*\)".*/\1/p')
-start "$BROWSER_EXE" "https://monsterget.com/tiktok-profile?auto=1&agentTaskId=$TASK_ID&usernames=mike,jenifer,tiktok&count=3"
+bash "$SCRIPTS/run-scrape.sh" /tiktok-profile usernames "mike,jenifer,tiktok" 3
 ```
 
-The platform creates a **parent task** that chains through each profile sequentially. Poll and download using `$TASK_ID` — the CSV contains one row per creator with aggregated profile stats.
+The platform creates a **parent task** that chains through each profile sequentially. The script polls and downloads exactly as with a single scrape — the CSV contains one row per creator with aggregated profile stats.
 
 ### Running multiple scrapes (serial batch)
 
-When the user asks for **several scrapes at once** (e.g. "test all 5 scrapers"), run them **back-to-back in a loop, unattended**:
+When the user asks for **several scrapes at once** (e.g. "test all 5 scrapers"), call the script in a loop, unattended:
 
-```
-1. TASK_ID = generate-task-id
-2. open browser page 1          (fire-and-forget)
-3. verify browser process       (Step 3c.1 — programmatic only)
-4. poll until ready             (background)
-5. download CSV 1
-6. TASK_ID = generate-task-id
-7. open browser page 2          ← do NOT wait for the user between tasks
-8. verify browser process       (same silent check)
-9. poll → download
-... repeat ...
+```bash
+for spec in "/tiktok-search-video query mike 10" \
+            "/tiktok-search-user query beauty 5" \
+            "/tiktok-tag query kpop 5"; do
+  bash "$SCRIPTS/run-scrape.sh" $spec
+done
 ```
 
 Key rules:
-- **Do not stop to ask the user between tasks.** Each new scrape is independent and the concurrency slot frees as soon as the previous one is `ready`.
+- **Do not stop to ask the user between tasks.** Each scrape is independent and the concurrency slot frees as soon as the previous one is `ready`.
 - The old browser tab may stay open — **it does not block anything**. Close tabs only if you want to reduce clutter.
-- Only **serialize if the user has 1 concurrent window** (free tier). If you get a `429 too_many_concurrent_scrapes`, it means a previous task is still `pending`/`processing` — wait for it to be `ready`/`failed`, then continue.
+- If you get a `429 too_many_concurrent_scrapes`, a previous task is still `pending`/`processing` — wait for it to be `ready`/`failed`, then continue.
 - Report all results **at the end**, together, not one at a time.
 
 ## Error handling
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `curl` returns nothing / connection refused | platform not reachable | confirm backend running (local) or site is up (production) |
-| status endpoint → `404 delivery_not_found` (transient, <60s) | wrong taskId | re-run 3a and regenerate |
-| `delivery_not_found` **persists >60s** | **browser never started** — the open command silently failed (exe not in PATH), so the page never created the task | Verify with `tasklist /fi "IMAGENAME eq $BROWSER_EXE.exe"`; retry with `$BROWSER_FULLPATH` (Step 3c.1); if still absent, ask user to open the URL manually |
-| status stays `processing` > 5 min | extension missing, browser not logged in, or page closed | confirm extension installed + logged in + page still open; page must stay open until scrape completes |
-| status endpoint never reaches `ready`, page shows "extension not ready" | extension not installed / not enabled | install extension from https://monsterget.com/install, reload page |
-| page shows "please log in" | not logged in | log in on https://monsterget.com, reopen page |
-| Step 0 check ③ TikTok login failed | browser not logged into TikTok | log into TikTok, reply "done", AI re-checks |
-| download → `409 not_ready` | data not ready | keep polling |
-| download → `409 buffer_unavailable` | buffer cleared by TTL race | retry a few seconds |
-| download → `410 already_downloaded` | already fetched once | do NOT retry; regenerate a taskId and run a new scrape |
-| 429 too_many_concurrent_scrapes | a previous task is still pending/processing | free users have 1 concurrent window — wait for the running task to reach `ready`/`failed`, then retry. Closing the browser tab is NOT required; a finished task already frees the slot |
-| 402 insufficient_credits | credits exhausted | signup grants 10M credits — almost never runs out; need more? contact the platform |
+| `platform_reachable: false` / curl returns nothing | platform not reachable | confirm backend running (local) or site is up (production) |
+| `extension: false` | extension not installed / not enabled in that browser | install from https://monsterget.com/install, reload the page |
+| `browser did not start` in scrape output | the launch command failed (exe not in PATH) | the script already retries via the full path; if it still fails, ask the user to open `url` manually |
+| status `not_found` | the page never created the task — browser never started or extension not ready | verify the browser opened; confirm the extension is installed and enabled |
+| status `timeout` (never `ready`, > 5 min) | extension missing, browser not logged in, or tab closed | confirm extension installed + logged in + **page stays open** until the scrape completes |
+| page shows "please log in" | not logged in | log in on https://monsterget.com, reopen the page |
+| Step ②/③ check times out | browser not logged in (or wrong browser) | log in **in the same browser as the extension**, reply "done", re-check |
+| `already_downloaded` | already fetched once | do NOT retry the download; run the scrape again (new taskId) |
+| `409 not_ready` | data not ready | keep polling |
+| `409 buffer_unavailable` | buffer cleared by TTL race | retry a few seconds later |
+| `429 too_many_concurrent_scrapes` | a previous task is still pending/processing | free users have 1 concurrent window — wait for the running task to reach `ready`/`failed`, then retry. Closing the browser tab is NOT required |
+| `402 insufficient_credits` | credits exhausted | signup grants 10M credits — almost never runs out; contact the platform |
 
 ## Concurrency note
 
@@ -684,12 +500,14 @@ The limit counts **running tasks**, not open windows:
 
 ## Gotchas
 
-- **Use the extension-installed browser.** Never rely on the system default browser — it may not have the extension. Ask once, remember the answer.
-- **Never call `POST /api/agent/scrape` yourself.** The page does it automatically with your taskId. Calling it manually is not needed and requires auth.
-- **Never run headless / sandbox scraping.** Scrapes execute in the user's real browser for anti-ban. If you're sandboxed and can't open a local browser, tell the user to run a local AI terminal (Claude Code CLI, local Codex).
+- **Use the extension-installed browser.** Never rely on the system default browser — it may not have the extension. `detect-browser.sh` finds it; `run-scrape.sh` uses it.
+- **Never call `POST /api/agent/scrape` yourself.** The page does it automatically with the generated taskId. Calling it manually is not needed and requires auth.
+- **Never run headless / sandbox scraping.** Scrapes execute in the user's real browser for anti-ban. If you're sandboxed and can't open a local browser (cloud IDE, web-only chat), tell the user to run a local AI terminal (Claude Code CLI, local Codex, Cline, Cursor…).
+- **Never re-implement the browser/process/polling logic inline.** The scripts are the single source of truth — that's what makes this work identically across AI clients and operating systems.
 - **Keep the tab open** until the task reaches `ready`. Closing the tab before the extension reports results means no server copy is produced.
 - **Do not wait for the user between scrapes.** Open → poll → download → next, all in one uninterrupted run.
 - After downloading, show the user the CSV path and a preview so they trust the result.
+- **Say the account-risk line once per session**, before the first scrape: this drives the user's real TikTok account, and bulk collection may violate TikTok's ToS — the user's account, the user's responsibility. Do not skip this just because the skill says "don't bother the user" — outward-facing actions deserve a confirmation.
 
 ## Sources
 
@@ -710,7 +528,7 @@ The limit counts **running tasks**, not open windows:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  准备情况检查
+  准备情况检查（浏览器：{BROWSER}）
   ① 安装 MonsterGet 扩展     ✅ 已完成 / ❌ 未安装
   ② 登录 monsterget.com     ✅ 已登录 / ❌ 未登录
   ③ 登录 TikTok             ✅ 已登录 / ❌ 未登录

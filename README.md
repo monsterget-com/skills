@@ -40,7 +40,9 @@ All results are clean CSV files — open in Excel, import into your analysis, or
 
 Works with **every** major AI coding tool:
 
-`Claude Code` · `Codex` · `Cursor` · `Windsurf` · `ChatGPT` · `Cline` · `Aider` · `Continue`
+`Claude Code` · `Codex CLI` · `Cursor` · `Windsurf` · `Cline` · `Roo Code` · `Kilo Code` · `Copilot` · `Gemini CLI` · `Zed` · `Aider` · `Continue` · `Junie` · `Warp` · `Devin`
+
+The skill is **agent-agnostic by construction**: all shell work lives in protocoled scripts that print JSON, so the same skill behaves identically whether the driving agent is Claude Code or anything else.
 
 The AI orchestrates everything:
 
@@ -96,13 +98,23 @@ After that, **every scrape is instant.** No more setup. Ever.
 
 ## 🔧 How to Install
 
-**No commands to memorize.** Open your AI assistant (Claude Code / Codex / Cline…), and send this in the chat:
+**No commands to memorize.** Open your AI assistant (Claude Code / Codex / Cursor / Cline…), and send this in the chat:
 
 > 💬 Install the tiktok-scraper skill from https://github.com/rosstzc/monsterget.com-skills
 
-The AI will clone the repo and set it up for you.
+That's it. The AI clones the repo, installs the runtime, and wires itself up.
 
-**Other clients** — paste the contents of SKILL.md into your custom instructions.
+### What the AI does
+
+1. Clones this repository
+2. Copies `tiktok-scraper/` → `~/.monsterget/skill/` — a **shared runtime directory**
+3. Adds a one-line pointer to its own custom-instructions file
+
+Because the runtime lives in one shared location (`~/.monsterget/skill/`), **every AI client on your machine shares it**. Install once, use it from Claude Code, Codex, Cursor, Cline — whatever you have.
+
+**Prefer to do it by hand?** See [tiktok-scraper/INSTALL.md](tiktok-scraper/INSTALL.md) for manual steps and the per-client pointer locations.
+
+**No shell access** (web-only chat like ChatGPT in a browser)? Paste the contents of [`tiktok-scraper/SKILL.md`](tiktok-scraper/SKILL.md) into your custom instructions — the AI will guide you through the steps manually.
 
 ## 🧠 Architecture (what actually happens)
 

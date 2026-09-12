@@ -40,7 +40,9 @@ Todos os resultados são arquivos CSV limpos — abra no Excel, importe para sua
 
 Funciona com **todas** as principais ferramentas de IA:
 
-`Claude Code` · `Codex` · `Cursor` · `Windsurf` · `ChatGPT` · `Cline` · `Aider` · `Continue`
+`Claude Code` · `Codex CLI` · `Cursor` · `Windsurf` · `Cline` · `Roo Code` · `Kilo Code` · `Copilot` · `Gemini CLI` · `Zed` · `Aider` · `Continue` · `Junie` · `Warp` · `Devin`
+
+Este skill é **independente de agente**: todo o trabalho de shell é delegado a scripts protocolados que emitem JSON, então ele se comporta igualmente com Claude Code ou qualquer outra ferramenta.
 
 A IA orquestra tudo:
 
@@ -100,9 +102,19 @@ Depois disso, **cada extração é instantânea.** Nunca mais configure.
 
 > 💬 Instale o skill tiktok-scraper de https://github.com/rosstzc/monsterget.com-skills
 
-A IA clonará o repositório e fará a configuração para você.
+A IA clonará o repositório, instalará o runtime e se configurará.
 
-**Outros clientes** — cole o conteúdo do SKILL.md nas instruções personalizadas.
+### O que a IA faz
+
+1. Clona o repositório
+2. Copia `tiktok-scraper/` → `~/.monsterget/skill/` — um **diretório de runtime compartilhado**
+3. Adiciona um ponteiro de uma linha ao seu próprio arquivo de instruções personalizadas
+
+Como o runtime fica em um local fixo (`~/.monsterget/skill/`), **todos os seus clientes de IA o compartilham**. Instale uma vez e use com Claude Code, Codex, Cursor, Cline — o que você tiver.
+
+**Prefere fazer manualmente?** Veja [tiktok-scraper/INSTALL.md](tiktok-scraper/INSTALL.md) para os passos manuais e os locais de ponteiro por cliente.
+
+**Sem acesso ao shell** (chat só na web, como ChatGPT)? Cole o conteúdo de [`tiktok-scraper/SKILL.md`](tiktok-scraper/SKILL.md) nas instruções personalizadas — a IA vai guiá-lo manualmente.
 
 ## 🧠 Arquitetura (o que realmente acontece)
 

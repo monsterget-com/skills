@@ -40,7 +40,9 @@ MonsterGet 换了个玩法：**采集发生在你自己的浏览器里**，用�
 
 兼容**所有**主流 AI 编程工具：
 
-`Claude Code` · `Codex` · `Cursor` · `Windsurf` · `ChatGPT` · `Cline` · `Aider` · `Continue`
+`Claude Code` · `Codex CLI` · `Cursor` · `Windsurf` · `Cline` · `Roo Code` · `Kilo Code` · `Copilot` · `Gemini CLI` · `Zed` · `Aider` · `Continue` · `Junie` · `Warp` · `Devin`
+
+该 skill **与具体 agent 无关**：所有 shell 操作都由协议化的独立脚本完成，输出 JSON，无论底层驱动 agent 是 Claude Code 还是其他工具，行为完全一致。
 
 AI 负责全部编排：
 
@@ -96,13 +98,23 @@ AI 负责全部编排：
 
 ## 🔧 安装方法
 
-**不用记任何命令。** 打开你的 AI 助手（Claude Code / Codex / Cline 等），在对话框里发：
+**不用记任何命令。** 打开你的 AI 助手（Claude Code / Codex / Cursor / Cline…），在对话框里发：
 
 > 💬 安装 skill tiktok-scraper，https://github.com/rosstzc/monsterget.com-skills
 
-AI 会自动克隆仓库并把它装好。
+AI 会自动克隆仓库，安装运行时，并配置自身。
 
-**其他客户端** —— 把 SKILL.md 的内容粘贴到自定义指令中即可。
+### AI 具体做的事
+
+1. 克隆本仓库
+2. 复制 `tiktok-scraper/` → `~/.monsterget/skill/` —— **共享运行时目录**
+3. 在自己对应的 rules 文件中添加一行指针
+
+因为运行时放在一个固定位置（`~/.monsterget/skill/`），**你所有 AI 客户端共享它**。安装一次，Claude Code、Codex、Cursor、Cline 都能用。
+
+**想手动安装？** 见 [tiktok-scraper/INSTALL.md](tiktok-scraper/INSTALL.md) —— 有手动步骤和每个客户端的指针位置。
+
+**没有 shell 权限**（比如纯网页版 ChatGPT）？把 [`tiktok-scraper/SKILL.md`](tiktok-scraper/SKILL.md) 的内容粘贴到你的自定义指令中，AI 会文字指引你完成每一步。
 
 ## 🧠 架构（实际发生了什么）
 
