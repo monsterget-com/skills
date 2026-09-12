@@ -24,14 +24,14 @@ User wants TikTok data: video search, user/creator search, hashtag/tag search, o
 
 ## 🌍 Language rule (read before anything else)
 
-**Always communicate with the user in the user's own language.** Every message you print for the user — the setup checklist, progress updates, failure explanations, the final result summary — must be in the language the user writes to you in. This skill's instructions are written in English for precision, but that is *not* the language you speak to the user.
+**Always communicate with the user in the user's own language.** Every message you print for the user — the setup guidance, progress updates, failure explanations, the final result summary — must be in the language the user writes to you in. This skill's instructions are written in English for precision, but that is *not* the language you speak to the user.
 
 - User writes Chinese → reply in Chinese
 - User writes Japanese → reply in Japanese
 - User writes Spanish / Portuguese / Korean / … → reply in that language
 - Never mix two languages in one user-facing message
 
-The zh-CN localized wording for the setup checklist is provided verbatim in the **Appendix** at the end of this file. Use it only when the user's language is Chinese; otherwise translate the English version yourself.
+The zh-CN localized wording for the setup guidance is provided verbatim in the **Appendix** at the end of this file. Use it only when the user's language is Chinese; otherwise translate the English version yourself.
 
 ## Architecture (what actually happens)
 
@@ -64,13 +64,13 @@ Change `SITE_URL`/`BASE_URL` when the platform is running locally (`http://local
 
 | Situation | Entry path | Cost to user |
 |-----------|-----------|--------------|
-| First time ever, or the user says they haven't set up | **Step 0 → Step 0.5** (checklist + full check loop) | ~2 min, once |
+| First time ever, or the user says they haven't set up | **Step 0** (interactive, step-by-step guidance + check) | ~2 min, once |
 | Setup is presumed already done (your memory, a previous session, or the user says "already installed") | **Step 0.6** — silent programmatic preflight | **zero** — no questions asked |
 
 Both paths end the same way: `PREFLIGHT_DONE=true`, only after checks actually pass. **There is no third path that skips verification.**
 
 - Prior knowledge ("the extension was installed last week") ≠ this session has verified it. It selects **which** path you take, never **whether** you verify.
-- If Step 0.6 fails, escalate to the Step 0 checklist — do not proceed to a scrape.
+- If Step 0.6 fails, escalate to the Step 0 flow (start at the failed step) — do not proceed to a scrape.
 - Never infer "verified" from the fact that a previous scrape succeeded. Every new conversation re-verifies.
 
 **Key insight**: the check functions run programmatically, not by asking the user. "Don't bother the user" means "verify silently", never "skip verification".
@@ -103,22 +103,23 @@ Username accepts `@name` or full profile URL (server normalizes).
 > │     │                                                                 │
 > │     ├── [Path A] No prior knowledge / user says not set up            │
 > │     │     │                                                           │
-> │     │     ├── Step 0: print setup checklist → wait "done"             │
-> │     │     ├── Step 0.5: auto-check loop (all three checks)            │
-> │     │     │     while (any fail): fix → "done" → recheck only fails  │
-> │     │     │                                                           │
-> │     │     └── all pass → PREFLIGHT_DONE=true → proceed to Step 1      │
+> │     │     └── Step 0: guide ONE step → verify → next                 │
+> │     │           ① install extension  → _check_extension              │
+> │     │           ② login monsterget   → _check_monsterget_login        │
+> │     │           ③ login TikTok       → _check_target_login            │
+> │     │           any ❌ → re-guide → re-verify (do NOT advance)        │
+> │     │           all ✅ → PREFLIGHT_DONE=true → proceed to Step 1      │
 > │     │                                                                 │
 > │     ├── [Path B] Setup presumed done (memory / prior session)         │
 > │     │     │                                                           │
 > │     │     └── Step 0.6: silent programmatic preflight (calls checks)  │
 > │     │           all pass → PREFLIGHT_DONE=true, continue              │
-> │     │           any fail → escalate to Step 0 checklist               │
+> │     │           any fail → escalate to Step 0 flow                   │
 > │     │                                                                 │
 > │     ├── Step 1~3: run the scrape normally                             │
 > │     │                                                                 │
 > │     └── after first success → subsequent scrapes this session         │
-> │         skip Step 0/0.5/0.6 entirely, go straight to Step 1            │
+> │         skip Step 0/0.6 entirely, go straight to Step 1               │
 > └────────────────────────────────────────────────────────────────────────┘
 > ```
 
@@ -135,43 +136,85 @@ Rules that make the AI fast instead of slow:
 3. **Polling already detects completion.** The poll loop exits the moment the status is `ready` (or `failed`). You do not need to ask the user whether the task finished — the status endpoint tells you.
 4. **Multiple scrapes run back-to-back, unattended.** When the user asks for several scrapes, run them in a loop: open → verify → poll → download → open the next one. Do **not** stop and report back between tasks. See "Running multiple scrapes" below.
 5. **A finished task frees the concurrency slot.** The scrape window may stay open — it does not block the next task. Only a task still `pending`/`processing` counts against the limit.
-6. **Only speak to the user** when: first-time setup (Step 0–0.5), a scrape fails, or all requested scrapes are done and you're presenting results.
+6. **Only speak to the user** when: first-time setup (Step 0), a scrape fails, or all requested scrapes are done and you're presenting results.
 
-### Step 0 — 🚀 First-time setup checklist (once only, wait for user)
+### Step 0 — 🚀 First-time setup: guide ONE step at a time (Path A only)
 
-> **💡 SKIP RULE**: Step 0 + 0.5 run together only on **Path A** (no prior knowledge, or user says setup not done). If you have prior knowledge the setup is already complete, go **Path B** — Step 0.6 only, no checklist. Once `PREFLIGHT_DONE=true` in this session, skip Steps 0/0.5/0.6 entirely for later scrapes.
+> **💡 SKIP RULE**: Step 0 runs only on **Path A** (no prior knowledge, or the user says setup isn't done). If you have prior knowledge the setup is already complete, go **Path B** — Step 0.6 only, no interactive flow. Once `PREFLIGHT_DONE=true` in this session, skip Steps 0/0.6 entirely for later scrapes.
 
-Tell the user they need to complete these 3 steps:
+> ⛔ **Setup is an interactive flow, NOT a notice.** Three hard rules:
+>
+> 1. **Never** present setup as a "reminder", "note", "things to know", "prerequisites", or a bullet list the user reads on their own.
+> 2. **Never** print all three steps at once and wait for a single "done" — that is a checklist, not guidance.
+> 3. **Never** echo the skill description, pricing, or quota as a lead-in "reminder" block.
+>
+> Instead: **one step → wait → verify → report → next step.** The user must never have to guess whether a step worked — you verify it programmatically and tell them.
+
+#### The per-step protocol (repeat for ① → ② → ③)
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  🚀 First-time setup (only needed once)
-
-  Complete these 3 steps in order:
-
-  ① Install the MonsterGet browser extension
-     Open {SITE_URL}/install and follow the guide for Edge/Chrome
-
-  ② Log in to monsterget.com
-     Open {SITE_URL}, register or sign in (guest login also works)
-
-  ③ Log in to TikTok in your browser
-     Open https://www.tiktok.com and sign in to your TikTok account
-     (If you're only scraping non-TikTok platforms, this step can be skipped)
-
-  After completing all steps, reply with "done" and I'll run auto-checks.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+for each step:
+  1. TELL    one short message: what to do + the exact link + what they'll see
+  2. WAIT    wait for the user to say they're done — never advance early
+  3. VERIFY  run THAT step's check function (library below) — programmatically
+  4. REPORT  "✅ Step N done" or "❌ Step N failed: <exactly how to fix>"
+  5. if ❌   → re-guide → wait → re-verify. Loop until ✅. Do NOT advance.
+  → next step
 ```
 
-Wait for the user to confirm completion, then proceed to Step 0.5.
+All three ✅ → `PREFLIGHT_DONE=true` → tell the user setup is complete → Step 1.
 
-### Step 0.5 — 🔄 Auto-check loop (first time only)
+#### Step ① — Install the MonsterGet browser extension
 
-> Run only after receiving user confirmation from Step 0. **Never called standalone** — must follow Step 0 immediately.
+**TELL** (translate to the user's language):
 
-Three checks, each returns "pass" or "fail". **All pass → tell the user, set `PREFLIGHT_DONE=true`, proceed to Step 1**. Any fail → list failures + guide → wait for user "done" → **re-check only the failed ones** → loop until all pass.
+> **第 1 步 / Step 1 — 安装 MonsterGet 扩展**
+> 请打开 {SITE_URL}/install ，按页面指引把扩展安装到 **Edge**（或 Chrome）。
+> 装好后回复"好了"，我会自动检测。
 
-#### Check functions (quick reference)
+**VERIFY**: `_check_extension` → `ok` | `missing`
+
+| Result | REPORT | Next |
+|--------|--------|------|
+| `ok` | "✅ 第 1 步完成：扩展已安装。" | → Step ② |
+| `missing` | "❌ 还没有检测到扩展。请确认：① 是装在 Edge 或 Chrome 里吗？② 装完后刷新过页面吗？装好后回复'好了'。" | re-guide → wait → re-verify |
+
+**🚧 Blocking rule**: while ① is `missing`, do **not** advance to ② or ③ — both checks depend on the extension and would fail regardless.
+
+#### Step ② — Log in to monsterget.com
+
+**TELL**:
+
+> **第 2 步 — 登录 monsterget.com**
+> 请打开 {SITE_URL} ，注册或登录你的账号（游客登录也可以）。
+> 完成后回复"好了"，我会自动检测登录状态。
+
+**VERIFY**: `_check_monsterget_login` → polls up to 60s (12 × 5s)
+
+| Result | REPORT | Next |
+|--------|--------|------|
+| `logged_in: true` | "✅ 第 2 步完成：已登录 monsterget.com。" | → Step ③ |
+| `false` (timeout) | "❌ 还没有检测到登录。请确认已在浏览器里登录 {SITE_URL}，然后回复'好了'。" | re-guide → wait → re-verify |
+
+> Before the check opens the browser, apply the Step 3c.1 rule: confirm the process actually started. A silent `start` failure looks exactly like "not logged in", and will send you chasing the wrong problem.
+
+#### Step ③ — Log in to TikTok
+
+**TELL**:
+
+> **第 3 步 — 登录 TikTok**
+> 请打开 https://www.tiktok.com ，登录你的 TikTok 账号。
+> （如果只抓取非 TikTok 平台，此步可跳过。）
+> 完成后回复"好了"，我会自动检测。
+
+**VERIFY**: `_check_target_login` → polls up to 60s (12 × 5s)
+
+| Result | REPORT | Next |
+|--------|--------|------|
+| `logged_in: true` | "✅ 第 3 步完成：已登录 TikTok。" | all three ✅ → setup complete |
+| `false` (timeout) | "❌ 还没有检测到 TikTok 登录。请在浏览器里登录后回复'好了'。" | re-guide → wait → re-verify |
+
+#### Check functions (library)
 
 ```bash
 # ① Extension install check (local shell scan, no browser needed)
@@ -208,69 +251,34 @@ _check_target_login() {
 }
 ```
 
-#### Loop logic
+#### Retry rules (same per-step loop, when a step fails)
 
-```python
-# Pseudocode — execute as described
-checks = {
-    "extension": {"fn": _check_extension, "guide": "Open {SITE_URL}/install to install the extension"},
-    "monsterget": {"fn": _check_monsterget_login, "guide": "Open {SITE_URL} and sign in"},
-    "target_tiktok": {"fn": _check_target_login, "guide": "Log in to https://www.tiktok.com in your browser"},
-}
+1. **Never advance past a failed step.** Only the step that failed is re-checked; steps that already passed are not re-run.
+2. **Poll timeout**: 60 seconds max per browser-based check (12 × 5s). Timeout counts as fail.
+3. **User wait**: after opening the browser for a check, poll immediately — don't interrupt the user. Only speak when reporting ✅/❌.
+4. **Blocking**: if ① (extension) is `missing`, do not attempt ② or ③.
 
-# First iteration checks all three; subsequent rounds only re-check failed_items
-failed_items = list(checks.keys())
+#### Completion
 
-while True:
-    current_fails = []
-    for name in failed_items:
-        c = checks[name]
-        result = shell(c["fn"])
-        if name == "extension":
-            if result == "missing": current_fails.append(name)
-        elif name == "monsterget":
-            if "false" in result: current_fails.append(name)
-        elif name == "target_tiktok":
-            if "false" in result: current_fails.append(name)
+After all three steps pass, tell the user (in their language):
 
-    if not current_fails:
-        tell_user_in_own_language "✅ All checks passed! Starting scrape..."
-        PREFLIGHT_DONE=true  # session variable
-        break
+> ✅ 全部准备完成！开始抓取...
 
-    # Some items failed
-    tell_user_in_own_language "The following items did not pass:"
-    for name in current_fails:
-        tell_user_in_own_language f"  ❌ {name}: {checks[name]['guide']}"
-    tell_user_in_own_language "After completion, reply 'done' and I'll re-check the failed items."
-
-    wait_user_reply_ok()
-    failed_items = current_fails  # next round only checks these
-
-# After loop → Step 1
-```
-
-#### Execution guidance
-
-1. **Order**: run ① (extension, fastest, no browser needed) → ② (MonsterGet login) → ③ (TikTok login).
-   - If ① fails, **block** ② and ③ (no extension means they'll both fail anyway), tell user "extension not installed" directly.
-2. **Poll timeout**: 60 seconds max per check (12 × 5s). Timeout = fail.
-3. **User wait**: after opening the browser, poll immediately — don't interrupt the user.
-4. **Post-success flag**: `PREFLIGHT_DONE=true`. Subsequent scrapes in the same session skip Steps 0/0.5/0.6 entirely, go straight to Step 1.
+Then set `PREFLIGHT_DONE=true` (session variable) and go to Step 1. Subsequent scrapes in this session skip Steps 0/0.6 entirely.
 
 ### Step 0.6 — 🪄 Silent preflight (programmatic, ~20 seconds)
 
-> **Path B entry** — use when you have prior knowledge the setup is already done (memory, a previous session, or the user says "already installed"). Runs checks programmatically. **If in doubt about the setup state, run Step 0 → 0.5 (Path A) instead.**
+> **Path B entry** — use when you have prior knowledge the setup is already done (memory, a previous session, or the user says "already installed"). Runs checks programmatically. **If in doubt about the setup state, run Step 0 (Path A) instead.**
 
 A silent programmatic check — no user interaction required, no questions asked.  
-If all pass → `PREFLIGHT_DONE=true`, proceed to Step 1. If any fail → escalate to the user with the Step 0 checklist.
+If all pass → `PREFLIGHT_DONE=true`, proceed to Step 1. If any fail → escalate to the user with the Step 0 flow (start at the failed step's TELL).
 
 ```bash
 # ① Extension install check (local file scan, 0.1s, no browser needed)
-EXT_RESULT=$(_check_extension)   # defined in Step 0.5
+EXT_RESULT=$(_check_extension)   # defined in Step 0
 if [ "$EXT_RESULT" = "missing" ]; then
   echo "FAIL: extension not found"
-  # → show Step 0 checklist to user, stop. Do NOT proceed to a scrape.
+  # → escalate to Step 0 ① (interactive). Do NOT proceed to a scrape.
 fi
 
 # ② MonsterGet reachability (API probe, 1s)
@@ -299,17 +307,17 @@ for i in 1 2 3; do
 done
 if [ "$LOGIN_OK" != "true" ]; then
   echo "FAIL: not logged in"
-  # → show Step 0 checklist to user, stop
+  # → escalate to Step 0 ② (interactive login guidance), stop
 fi
 ```
 
-**On failure**: present the Step 0 checklist to the user, wait for "done", then re-run Step 0.6 (not the full Step 0 → 0.5).
+**On failure**: escalate to the interactive Step 0 flow, starting at the step that failed. Wait for the user's "done", then re-verify (via the step's check, not the whole 0.6).
 
-**On success**: set `PREFLIGHT_DONE=true` (and `SESSION_PREFLIGHT_PASSED=true`). Subsequent scrapes this session skip Steps 0/0.5/0.6 entirely.
+**On success**: set `PREFLIGHT_DONE=true` (and `SESSION_PREFLIGHT_PASSED=true`). Subsequent scrapes this session skip Steps 0/0.6 entirely.
 
 ### Step 1 — Platform reachability check
 
-> 💡 If `PREFLIGHT_DONE=true` (set by Step 0.5 or Step 0.6), this is the **first step** for this scrape — Steps 0/0.5/0.6 are skipped.
+> 💡 If `PREFLIGHT_DONE=true` (set by Step 0 or Step 0.6), this is the **first step** for this scrape — Steps 0/0.6 are skipped.
 
 Quickly probe whether the platform is reachable:
 
@@ -325,9 +333,9 @@ If scraping previously failed with an extension error, ask the user to verify th
 
 ### Step 2 — First-time setup (folded into Step 0)
 
-> ✅ The first-time guide + check loop was completed in Step 0 → 0.5. Not repeated here.
+> ✅ The first-time guide was completed in Step 0. Not repeated here.
 >
-> If the user reports a missing extension or login problem, refer to Step 0's checklist:
+> If the user reports a missing extension or login problem, refer to Step 0's per-step guidance:
 > - Install extension: `{SITE_URL}/install`
 > - Log in to MonsterGet: `{SITE_URL}`
 > - Log in to the target site (TikTok): `https://www.tiktok.com`
@@ -503,7 +511,7 @@ Key rules:
 | status stays `processing` > 5 min | extension missing, browser not logged in, or page closed | confirm extension installed + logged in + page still open; page must stay open until scrape completes |
 | status endpoint never reaches `ready`, page shows "extension not ready" | extension not installed / not enabled | install extension from `{SITE_URL}/install`, reload page |
 | page shows "please log in" | not logged in | log in on `{SITE_URL}`, reopen page |
-| Step 0.5 check ③ TikTok login failed | browser not logged into TikTok | log into TikTok, reply "done", AI re-checks |
+| Step 0 check ③ TikTok login failed | browser not logged into TikTok | log into TikTok, reply "done", AI re-checks |
 | download → `409 not_ready` | data not ready | keep polling |
 | download → `409 buffer_unavailable` | buffer cleared by TTL race | retry a few seconds |
 | download → `410 already_downloaded` | already fetched once | do NOT retry; regenerate a taskId and run a new scrape |
@@ -540,31 +548,44 @@ The limit counts **running tasks**, not open windows:
 
 > Use the Chinese wording below **only** when the user writes to you in Chinese. For all other languages, translate the English text in the body yourself. Never show this appendix to the user.
 
-### Step 0 checklist (中文)
+### Step 0 per-step messages (中文)
+
+> Send these **one at a time** — never all three at once.
+
+**① 安装扩展 — TELL**
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  🚀 首次使用准备（仅需做一次）
-
-  请按以下顺序完成 3 步：
-
-  ① 安装 MonsterGet 浏览器扩展
-     打开 {SITE_URL}/install，按指引安装到 Edge 浏览器
-
-  ② 登录 monsterget.com
-     打开 {SITE_URL}，注册/登录您的账号（或使用游客登录）
-
-  ③ 在浏览器中登录 TikTok
-     打开 https://www.tiktok.com，登录您的 TikTok 账号
-     （如果只使用非 TikTok 爬虫，此步可跳过）
-
-  完成后请回复"好了"，我来自动检测。
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+第 1 步 — 安装 MonsterGet 扩展
+请打开 {SITE_URL}/install ，按页面指引把扩展安装到 Edge（或 Chrome）。
+装好后回复"好了"，我会自动检测。
 ```
 
-### Step 0.5 loop messages (中文)
+- ✅ `✅ 第 1 步完成：扩展已安装。`
+- ❌ `❌ 还没有检测到扩展。请确认：① 是装在 Edge 或 Chrome 里吗？② 装完后刷新过页面吗？装好后回复"好了"。`
 
-- All passed: `✅ 全部检测通过！开始抓取...`
-- Failures heading: `以下项目未通过：`
-- Per-failure: `❌ {name}: {guide}` (use the same guides as the English table)
-- After fixes: `完成后请回复'好了'，我将重新检测未通过项。`
+**② 登录 monsterget.com — TELL**
+
+```
+第 2 步 — 登录 monsterget.com
+请打开 {SITE_URL} ，注册或登录你的账号（游客登录也可以）。
+完成后回复"好了"，我会自动检测登录状态。
+```
+
+- ✅ `✅ 第 2 步完成：已登录 monsterget.com。`
+- ❌ `❌ 还没有检测到登录。请确认已在浏览器里登录 {SITE_URL}，然后回复"好了"。`
+
+**③ 登录 TikTok — TELL**
+
+```
+第 3 步 — 登录 TikTok
+请打开 https://www.tiktok.com ，登录你的 TikTok 账号。
+（如果只抓取非 TikTok 平台，此步可跳过。）
+完成后回复"好了"，我会自动检测。
+```
+
+- ✅ `✅ 第 3 步完成：已登录 TikTok。`
+- ❌ `❌ 还没有检测到 TikTok 登录。请在浏览器里登录后回复"好了"。`
+
+**全部完成**
+
+`✅ 全部准备完成！开始抓取...`
