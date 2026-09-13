@@ -39,7 +39,11 @@ MG=false
 TK=false
 if [ "$EXT" = true ] && [ "$REACH" = true ] && [ "$NEED_CHOICE" = false ]; then
   MONSTERGET_POLLS=3 bash "$SCRIPT_DIR/check-login.sh" monsterget >/dev/null 2>&1 && MG=true
-  MONSTERGET_POLLS=3 bash "$SCRIPT_DIR/check-login.sh" tiktok    >/dev/null 2>&1 && TK=true
+  # tiktok probe uses more polls because the target-site login check
+  # (login-check-target.html) inserts a random 5-10s anti-detection delay
+  # before opening the TikTok window, then the extension takes another
+  # ~3-5s to check and relay back.  6 polls × 5s = ~30s cap is enough.
+  MONSTERGET_POLLS=6 bash "$SCRIPT_DIR/check-login.sh" tiktok    >/dev/null 2>&1 && TK=true
 fi
 
 state_set extension "$EXT"

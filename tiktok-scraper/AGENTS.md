@@ -91,7 +91,7 @@ Each script prints one JSON object to stdout and exits 0 on success / 1 on failu
 | `choose-browser.sh <edge\|chrome>` | Save the user's browser choice when several have the extension (`need_choice:true`). |
 | `check-login.sh <target>` | Open login-check page, poll for logged-in status. `target=monsterget` or `tiktok`. Use for steps ②/③. |
 | `run-scrape.sh <pagePath> <param> <value> [count]` | Full scrape: generate taskId, open browser, verify process, poll, download CSV. |
-| `run-batch.sh <spec> [<spec> ...]` | Run several scrapes serially with a random 15-45s pause between each (never after the last). |
+| `set-download-dir.sh [<dir>]` | Choose where scraped CSVs are saved (persists in state). No arg = system Downloads. Ask the user once per machine. |
 
 ### Browser choice
 
@@ -131,9 +131,10 @@ Output on success: `{"status":"ready","taskId":"...","file":"...csv","rowCount":
 ## Behavior rules for the agent
 
 - **Open + verify + poll in one shot.** Never ask "is the browser open?" or "shall I continue?".
-- **Don't stop between multiple scrapes.** Use `run-batch.sh` — it paces each scrape with a random pause and reports everything at the end.
+- **Multiple scrapes = orchestrate them one at a time.** Run the first `run-scrape.sh`, wait for its result, then run the next. The page's `auto=1` flow already inserts a random 5-10s delay before the scraper window opens (anti-detection), so you don't add any sleep — just run each scrape and report between them.
 - **Show the CSV path + a few rows** so the user trusts the result.
 - **First scrape each session**: tell the user once that this drives their real TikTok account (user's account, user's responsibility).
+- **Where CSVs are saved**: the first time you scrape, ask the user where CSV files should go — "保存到系统下载目录（默认）可以吗？还是换个路径？" Then save their choice with `set-download-dir.sh` (no arg = system Downloads, or pass a path). It persists, so ask at most once per machine; `run-scrape.sh` reports the `dir` in its output.
 - **On failure**: use the error field to explain exactly what to fix — don't just say "try again".
 
 ## Common errors

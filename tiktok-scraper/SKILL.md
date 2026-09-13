@@ -86,7 +86,7 @@ Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
 | `check-login.sh <monsterget\|tiktok>` | Opens the platform's login-check page, polls up to 60s (or `MONSTERGET_POLLS` × 5s). Writes the login result to state. | 0 = logged in, 1 = not |
 | `preflight.sh` | Silent full preflight: extension → browser choice → platform reachability → both logins. Short 3×5s login probes. | 0 = all pass, 1 = something failed |
 | `run-scrape.sh <pagePath> <param> <value> [count]` | End-to-end scrape: taskId → open browser → verify process → poll → download CSV. | 0 = CSV downloaded, 1 = failed |
-| `run-batch.sh <spec> [<spec> ...]` | Multiple scrapes serially with a random pause (15-45s) between each. Never after the last. | 0 = all passed, 1 = any failed |
+| `set-download-dir.sh [<dir>]` | Choose where scraped CSVs are saved (persisted in state). No arg = the OS default Downloads dir. | 0 = saved, 1 = cannot create dir |
 
 **Every script prints exactly one JSON object to stdout.** Parse that — it is the authoritative result. Do not ask the user what happened.
 
@@ -122,7 +122,7 @@ A small JSON key/value store persisted between conversations:
  "monsterget_login":"true","tiktok_login":"true","checked_at":"2026-09-13T10:00:00Z"}
 ```
 
-- **Purpose**: (a) a record of when the checks last passed, (b) a browser hint so a new conversation knows where to look, (c) the last taskId/URL.
+- **Purpose**: (a) a record of when the checks last passed, (b) a browser hint so a new conversation knows where to look, (c) the last taskId/URL, (d) the chosen CSV download dir (set via `set-download-dir.sh`).
 - **It is NEVER a substitute for re-running the checks — every new conversation re-verifies.**
 - The scripts read and write this file themselves. You generally don't need to touch it directly (though `cat ~/.monsterget/state.json` is a fine way to see the last known status).
 
@@ -446,7 +446,7 @@ The script handles, in order:
 4. Open it in the detected browser (fire-and-forget)
 5. **Verify the browser process actually started** (up to 3s, then a full-path retry) — a silent launch failure otherwise looks like a task that never appears
 6. Poll status every 5s until `ready` / `failed` / `downloaded` / `not_found` (5-minute timeout)
-7. Download the CSV with the server's semantic filename
+7. Download the CSV with the server's semantic filename into the resolved download dir (see "Where CSVs are saved")
 
 > 🚀 **Do NOT ask the user** "is it open?" after the browser opens. Do not pause, do not read the URL bar. Read the script's JSON output instead — it tells you whether the launch succeeded.
 
@@ -454,7 +454,7 @@ The script handles, in order:
 
 | `status` in output | Meaning | What to do |
 |--------------------|---------|------------|
-| `ready` | CSV downloaded — `file` is the filename, `rowCount` the row count | Show the user a preview + the path |
+| `ready` | CSV downloaded — `file` is the filename, `dir` the folder, `rowCount` the row count | Show the user a preview + the path |
 | `not_found` | The page never created the task (launch failed or extension not ready) | Check the `error` field; ask the user to open `url` manually |
 | `timeout` | Not ready in 5 min | Extension missing, not logged in, or tab closed — see Troubleshooting |
 | `failed` | Task failed on the platform | Report the error |
@@ -462,7 +462,25 @@ The script handles, in order:
 
 #### 3d. Verify & present
 
-Show the user the first rows of the CSV so they can confirm the data is correct. State the saved file path.
+Show the user the first rows of the CSV so they can confirm the data is correct. State the saved file path — the scrape output carries it in `dir` (the folder) + `file` (the name).
+
+#### Where CSVs are saved
+
+CSVs go to the **OS default Downloads folder** unless the user picks another location. Resolve order (first match wins):
+
+1. `MONSTERGET_DOWNLOAD_DIR` env var (rarely used)
+2. `download_dir` in `~/.monsterget/state.json` (the saved choice)
+3. the OS default: `~/Downloads` (Linux uses `xdg-user-dir DOWNLOAD` when available)
+
+**Ask once, before the first scrape of a session** — *"CSV 保存到系统下载目录（`<path>`）可以吗？还是换个路径？"* — then persist the answer:
+
+```bash
+bash "$SCRIPTS/set-download-dir.sh"                 # user accepted the default
+bash "$SCRIPTS/set-download-dir.sh" "D:/tiktok-data" # user gave a path
+# → {"ok":true,"dir":"D:/tiktok-data","source":"custom"}
+```
+
+The choice persists across sessions, so ask at most once per machine. Never re-ask if `state.json` already has a `download_dir` unless the user brings it up.
 
 ### Step 4 — Bulk creator profiles (optional)
 
@@ -474,34 +492,31 @@ bash "$SCRIPTS/run-scrape.sh" /tiktok-profile usernames "mike,jenifer,tiktok" 3
 
 The platform creates a **parent task** that chains through each profile sequentially. The script polls and downloads exactly as with a single scrape — the CSV contains one row per creator with aggregated profile stats.
 
-### Running multiple scrapes (serial batch)
+### Running multiple scrapes (AI-orchestrated, one at a time)
 
-When the user asks for **several scrapes at once** (e.g. "test all 5 scrapers"), use `run-batch.sh` with one quoted spec per scrape:
+When the user asks for **several scrapes at once** (e.g. "test all 5 scrapers"), do **not** call them all at once or ask for confirmation between them. Instead, orchestrate them one at a time — the AI is the conductor:
 
 ```bash
-bash "$SCRIPTS/run-batch.sh" \
-  "/tiktok-search-video query mike tyson 20" \
-  "/tiktok-search-user query beauty 5" \
-  "/tiktok-tag query kpop 5"
-```
+# Task 1 → wait → result
+bash "$SCRIPTS/run-scrape.sh" /tiktok-search-video query "mike tyson" 20
+# → show result to the user (CSV path + preview)
 
-The batch runs them **serially, unattended**, and — crucially — sleeps a **random 15–45s between consecutive scrapes** (never after the last). This paces the batch so it doesn't look like a machine opening window after window. Override with `MONSTERGET_DELAY_MIN` / `MONSTERGET_DELAY_MAX` if a user needs a different cadence.
+# Task 2 → wait → result
+bash "$SCRIPTS/run-scrape.sh" /tiktok-search-user query beauty 5
+# → show result
 
-Output is a single JSON object with every result:
-
-```json
-{"total":3,"ok":2,"failed":1,"results":[
-  {"status":"ready","taskId":"...","file":"mike-...csv","rowCount":20},
-  {"status":"ready","taskId":"...","file":"beauty-...csv","rowCount":5},
-  {"status":"failed","taskId":"...","error":"..."}]}
+# Task 3 → wait → result
+bash "$SCRIPTS/run-scrape.sh" /tiktok-tag query kpop 5
+# → final summary
 ```
 
 Key rules:
-- **Do not stop to ask the user between tasks.** Each scrape is independent and the concurrency slot frees as soon as the previous one is `ready`.
-- The old browser tab may stay open — **it does not block anything**. Close tabs only if you want to reduce clutter.
-- If a result carries `429 too_many_concurrent_scrapes`, a previous task is still `pending`/`processing` — wait for it to be `ready`/`failed`, then continue.
-- Report all results **at the end**, together, not one at a time.
-- **Never reimplement the loop inline** — weak clients forget the pause; the script enforces it.
+- **Do not stop to ask the user between tasks.** Each scrape is independent and should run as soon as the previous one is ready. The AI orchestrates, the user watches.
+- **The page already inserts a random 5-10s delay** (`auto=1` flow in `_agentAutoStart`) before the scraper window opens. The delay is server-side, so the AI calls `run-scrape.sh` without adding its own sleep.
+- **The old browser tab may stay open** — it does not block the next task. Only a task still `pending`/`processing` counts against the concurrency limit.
+- **If a scrape returns `429 too_many_concurrent_scrapes`**, a previous task is still `pending`/`processing` — wait for it to be `ready`/`failed`, then retry.
+- **Report all results at the end**, together, not one at a time — but show each result's CSV preview as you go so the user trusts progress.
+- **Never reimplement a batch loop in the AI** — just chain `run-scrape.sh` calls in sequence. The pacing (5-10s page delay) is built into the page.
 
 ## Error handling
 

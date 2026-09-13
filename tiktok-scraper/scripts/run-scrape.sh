@@ -92,9 +92,15 @@ STATUSVAL="$(echo "$STATUS" | sed -n 's/.*"status":"\([^"]*\)".*/\1/p')"
 
 case "$STATUSVAL" in
   ready)
-    curl -s --max-time 60 -OJ "$BASE_URL/api/agent/delivery/task/$TASK_ID/data" 2>/dev/null
-    printf '{"status":"ready","taskId":"%s","file":"%s","rowCount":%s,"url":"%s"}\n' \
-      "$TASK_ID" "$FILENAME" "${ROWCOUNT:-0}" "$URL"
+    DL_DIR="$(resolve_download_dir)"
+    if ! mkdir -p "$DL_DIR" 2>/dev/null; then
+      printf '{"status":"failed","taskId":"%s","url":"%s","error":"cannot create download dir: %s"}\n' \
+        "$TASK_ID" "$URL" "$DL_DIR"
+      exit 1
+    fi
+    (cd "$DL_DIR" && curl -s --max-time 60 -OJ "$BASE_URL/api/agent/delivery/task/$TASK_ID/data" 2>/dev/null)
+    printf '{"status":"ready","taskId":"%s","file":"%s","dir":"%s","rowCount":%s,"url":"%s"}\n' \
+      "$TASK_ID" "$FILENAME" "$DL_DIR" "${ROWCOUNT:-0}" "$URL"
     ;;
   downloaded)
     printf '{"status":"already_downloaded","taskId":"%s","error":"CSV is tombstoned (one download only) — generate a new taskId and scrape again"}\n' \

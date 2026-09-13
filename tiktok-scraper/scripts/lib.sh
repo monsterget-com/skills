@@ -81,40 +81,61 @@ state_set() {
 # ---------------------------------------------------------------------------
 BROWSER="none"; BROWSER_EXE=""; BROWSER_FULLPATH=""; BROWSERS=""; CHOSEN_BY="none"
 
-# _browser_conf <name> → "<preferences_path>|<full_binary_path>|<exe_name>"
+# _browser_conf <name> → "<user_data_dir>|<full_binary_path>|<exe_name>"
+# First field is the browser's USER DATA dir (Default profile inside), not the
+# Preferences file — extension detection scans inside it (see _probe_browser).
 _browser_conf() {
   case "$(detect_os):$1" in
     windows:edge)
       printf '%s|%s|%s' \
-        "$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Preferences" \
+        "$HOME/AppData/Local/Microsoft/Edge/User Data" \
         "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" "msedge" ;;
     windows:chrome)
       printf '%s|%s|%s' \
-        "$HOME/AppData/Local/Google/Chrome/User Data/Default/Preferences" \
+        "$HOME/AppData/Local/Google/Chrome/User Data" \
         "/c/Program Files/Google/Chrome/Application/chrome.exe" "chrome" ;;
     macos:edge)
       printf '%s|%s|%s' \
-        "$HOME/Library/Application Support/Microsoft Edge/Default/Preferences" \
+        "$HOME/Library/Application Support/Microsoft Edge" \
         "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" "Microsoft Edge" ;;
     macos:chrome)
       printf '%s|%s|%s' \
-        "$HOME/Library/Application Support/Google/Chrome/Default/Preferences" \
+        "$HOME/Library/Application Support/Google/Chrome" \
         "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" "Google Chrome" ;;
     linux:edge)
       printf '%s|%s|%s' \
-        "$HOME/.config/microsoft-edge/Default/Preferences" "" "microsoft-edge" ;;
+        "$HOME/.config/microsoft-edge" "" "microsoft-edge" ;;
     linux:chrome)
       printf '%s|%s|%s' \
-        "$HOME/.config/google-chrome/Default/Preferences" "" "google-chrome" ;;
+        "$HOME/.config/google-chrome" "" "google-chrome" ;;
     *) return 1 ;;
   esac
 }
 
 # _probe_browser <name> → 0 if that browser has the MonsterGet extension
+# Covers BOTH install types (they land in different places on disk):
+#   ① Preferences manifest snapshot — Chrome/Edge embed the extension manifest
+#      (incl. "name") inside Default/Preferences (and Edge's Secure Preferences),
+#      for store-installed AND load-unpacked alike. Match the escaped form
+#      \"name\": \"MonsterGet so a download-path hit cannot false-positive.
+#   ② Physical Extensions/<id>/manifest.json — store-installed only; fallback
+#      in case the Preferences snapshot is not flushed yet.
 _probe_browser() {
-  local pref
-  pref="$(_browser_conf "$1" | cut -d'|' -f1)"
-  [ -n "$pref" ] && [ -f "$pref" ] && grep -q "MonsterGet" "$pref" 2>/dev/null
+  local udir pref m
+  udir="$(_browser_conf "$1" | cut -d'|' -f1)"
+  [ -n "$udir" ] || return 1
+
+  # ① manifest name snapshot in Preferences / Secure Preferences (Default profile)
+  for pref in "$udir/Default/Preferences" "$udir/Default/Secure Preferences"; do
+    [ -f "$pref" ] && grep -aqE '\\"name\\": ?\\"MonsterGet' "$pref" 2>/dev/null && return 0
+  done
+
+  # ② physical folder (store-installed fallback)
+  for m in "$udir/Default/Extensions/"*/*/manifest.json; do
+    [ -f "$m" ] && grep -q 'MonsterGet' "$m" 2>/dev/null && return 0
+  done
+
+  return 1
 }
 
 # _select_browser <name> → point the globals at that browser
@@ -221,6 +242,33 @@ random_delay() {
   [ "$span" -lt 1 ] && span=1
   RAND_DELAY=$(( min + RANDOM % span ))
   sleep "$RAND_DELAY"
+}
+
+# ---------------------------------------------------------------------------
+# Download directory — where scraped CSVs are saved.
+# ---------------------------------------------------------------------------
+# detect_download_dir — the OS's default downloads folder.
+detect_download_dir() {
+  local d
+  case "$(detect_os)" in
+    linux)
+      if command -v xdg-user-dir >/dev/null 2>&1; then
+        d="$(xdg-user-dir DOWNLOAD 2>/dev/null)"
+        [ -n "$d" ] && { printf '%s' "$d"; return 0; }
+      fi
+      printf '%s' "$HOME/Downloads" ;;
+    *) printf '%s' "$HOME/Downloads" ;;
+  esac
+}
+
+# resolve_download_dir — precedence: env override > saved choice > OS default.
+# Prints the directory (never empty).
+resolve_download_dir() {
+  local d="${MONSTERGET_DOWNLOAD_DIR:-}"
+  [ -z "$d" ] && d="$(state_get download_dir)"
+  [ -z "$d" ] && d="$(detect_download_dir)"
+  case "$d" in "~"*) d="$HOME${d#\~}" ;; esac   # expand a leading ~
+  printf '%s' "$d"
 }
 
 # ---------------------------------------------------------------------------
