@@ -74,6 +74,9 @@ if [ "$STARTED" != true ]; then
 fi
 
 # ---- poll until ready (up to 5 minutes) ----
+# Note: `not_found` (task not created YET) is NOT terminal — the page takes 10-20s
+# to load and POST the task after the browser opens. Treat it as "keep waiting";
+# only give up when the full loop expires (the final STATUS then reports it below).
 STATUS="{}"
 for _ in $(seq 1 60); do
   STATUS="$(curl -s --max-time 10 "$BASE_URL/api/agent/delivery/task/$TASK_ID/status" 2>/dev/null)"
@@ -81,7 +84,6 @@ for _ in $(seq 1 60); do
     *'"status":"ready"'*)      break ;;
     *'"status":"downloaded"'*) break ;;
     *'"status":"failed"'*)     break ;;
-    *not_found*)               break ;;
   esac
   sleep 5
 done
