@@ -186,19 +186,48 @@ browser_choices_json() {
 # ---------------------------------------------------------------------------
 # Browser launch & process verification
 # ---------------------------------------------------------------------------
-# open_url <url> — open in the EXTENSION browser, not the system default.
+# _focus_browser — raise the extension browser's window to the foreground (Windows).
+# A URL opened from a background shell lands in the EXISTING window without raising
+# it, so the user — often in another app (an AI client) — never sees the page, and
+# the scraper popup it later triggers stays hidden too. Raising the browser here is
+# what makes the whole flow visible: page opens → browser in front → popup on top.
+#
+# AppActivate must be given a PID: matching by process name or window title does NOT
+# work (Edge titles read "<page> - Microsoft Edge", never "msedge").
+_focus_browser() {
+  [ "$(detect_os)" = "windows" ] || return 0
+  [ -z "$BROWSER_EXE" ] && return 0
+  command -v powershell >/dev/null 2>&1 || return 0
+  powershell -NoProfile -Command "
+    try {
+      \$p = Get-Process '$BROWSER_EXE' -ErrorAction SilentlyContinue |
+            Where-Object { \$_.MainWindowTitle -ne '' } |
+            Select-Object -First 1
+      if (\$p) { (New-Object -ComObject WScript.Shell).AppActivate(\$p.Id) | Out-Null }
+    } catch {}
+  " >/dev/null 2>&1
+  return 0
+}
+
+# open_url <url> — open in the EXTENSION browser, not the system default, and bring
+# that browser to the foreground (see _focus_browser).
 # Windows: `cmd /c start` would open the DEFAULT browser — never use it first,
 # or a URL meant for the extension browser ends up in the wrong one.
 open_url() {
-  local url="$1"
+  local url="$1" opened=1
   case "$(detect_os)" in
     windows)
-      [ -n "$BROWSER_FULLPATH" ] && [ -f "$BROWSER_FULLPATH" ] && "$BROWSER_FULLPATH" "$url" >/dev/null 2>&1 && return 0
-      [ -n "$BROWSER_EXE" ] && command -v "$BROWSER_EXE" >/dev/null 2>&1 && "$BROWSER_EXE" "$url" >/dev/null 2>&1 && return 0
-      if command -v cmd >/dev/null 2>&1; then
-        MSYS_NO_PATHCONV=1 cmd /c start "" "$url" >/dev/null 2>&1 && return 0
+      if [ -n "$BROWSER_FULLPATH" ] && [ -f "$BROWSER_FULLPATH" ]; then
+        "$BROWSER_FULLPATH" "$url" >/dev/null 2>&1 && opened=0
       fi
-      return 1
+      if [ "$opened" != 0 ] && [ -n "$BROWSER_EXE" ] && command -v "$BROWSER_EXE" >/dev/null 2>&1; then
+        "$BROWSER_EXE" "$url" >/dev/null 2>&1 && opened=0
+      fi
+      if [ "$opened" != 0 ] && command -v cmd >/dev/null 2>&1; then
+        MSYS_NO_PATHCONV=1 cmd /c start "" "$url" >/dev/null 2>&1 && opened=0
+      fi
+      [ "$opened" = 0 ] && _focus_browser
+      return "$opened"
       ;;
     macos)
       [ -n "$BROWSER_FULLPATH" ] && [ -f "$BROWSER_FULLPATH" ] && "$BROWSER_FULLPATH" "$url" >/dev/null 2>&1 && return 0
