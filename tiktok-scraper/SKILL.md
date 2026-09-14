@@ -76,6 +76,8 @@ Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
 | `run-scrape.sh <pagePath> <param> <value> [count]` | Every scrape | End-to-end: taskId → open browser → verify process → poll → download CSV |
 | `set-download-dir.sh [<dir>]` | First scrape (ask once) | Choose where CSVs are saved. No arg = OS default Downloads dir |
 
+> **🚫 Never run `detect-browser.sh`, `check-login.sh`, or `preflight.sh`** — these are archived reference only. The user guarantees all conditions manually. The AI must not call them during installation, before a scrape, or on failure.
+
 ### State file (`~/.monsterget/state.json`)
 
 A small JSON key/value store that persists your browser choice, download directory, and last task info:
@@ -312,6 +314,7 @@ The limit counts **running tasks**, not open windows:
 - After downloading, show the user the CSV path and a preview so they trust the result.
 - **Say the account-risk line once per batch**, before the first scrape: this drives the user's real TikTok account, and bulk collection may violate TikTok's ToS — the user's account, the user's responsibility.
 - **The pre-task reminder (Step 1) exists because the user opted out of auto-detection.** It is the user's only signal that the browser is about to open. Never skip it.
+- **Never run `detect-browser.sh`, `check-login.sh`, or `preflight.sh`.** They exist in the scripts directory but are deliberately unused — the AI must never call them.
 
 ## Sources
 
