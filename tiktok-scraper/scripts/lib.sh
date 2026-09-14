@@ -192,20 +192,16 @@ browser_choices_json() {
 # the scraper popup it later triggers stays hidden too. Raising the browser here is
 # what makes the whole flow visible: page opens → browser in front → popup on top.
 #
-# AppActivate must be given a PID: matching by process name or window title does NOT
-# work (Edge titles read "<page> - Microsoft Edge", never "msedge").
+# A .ps1 sibling does the heavy lifting: AttachThreadInput + SetForegroundWindow
+# bypasses Windows' foreground-lock (AppActivate silently fails when this script runs
+# as a background child of an AI client — see focus-browser.ps1).
 _focus_browser() {
   [ "$(detect_os)" = "windows" ] || return 0
   [ -z "$BROWSER_EXE" ] && return 0
   command -v powershell >/dev/null 2>&1 || return 0
-  powershell -NoProfile -Command "
-    try {
-      \$p = Get-Process '$BROWSER_EXE' -ErrorAction SilentlyContinue |
-            Where-Object { \$_.MainWindowTitle -ne '' } |
-            Select-Object -First 1
-      if (\$p) { (New-Object -ComObject WScript.Shell).AppActivate(\$p.Id) | Out-Null }
-    } catch {}
-  " >/dev/null 2>&1
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  powershell -NoProfile -File "$script_dir/focus-browser.ps1" -ExeName "$BROWSER_EXE" >/dev/null 2>&1
   return 0
 }
 
