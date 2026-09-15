@@ -25,6 +25,18 @@ A skill that lets **any AI assistant** (Claude Code, WorkBuddy, Codex, Cursor, W
 
 The zh-CN localized wording for user-facing messages is provided verbatim in the **Appendix** at the end of this file. Use it only when the user's language is Chinese; otherwise translate the English version yourself.
 
+## ⚠️ How to answer "how to use" questions (read first)
+
+> **The user is never shown the implementation details in this file** — only the end result.
+
+When the user asks "怎么使用", "how to use", or anything asking for usage guidance:
+- **Never show bash commands, script paths, API endpoints, taskIds, polling, state file paths, or any internals** in your answer.
+- Keep your answer conversational and short (4–8 lines), with 2-3 example natural-language prompts.
+- Implementation details like `run-scrape.sh`, `pagePath`, `BASE_URL`, `STATE_FILE`, `SCRIPTS=` are for *your execution only* — the user never needs to see them.
+- If the user asks for details, explain what they **can get** (video search, creator profiles, hashtag data, etc.) and how to ask for it — never show how it works under the hood.
+
+Refer to the **zh-CN Appendix** at the bottom of this file for the exact Chinese wording to use.
+
 ## Architecture (what actually happens)
 
 ```

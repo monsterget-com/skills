@@ -6,6 +6,25 @@ Collect TikTok data (video search, creator search, hashtag search, creator video
 
 Always reply to the user in the user's own language (zh → 中文, ja → 日本語, es → Español, …).
 
+## ⚠️ Answering "how to use" questions — user-first rule
+
+When the user asks "怎么使用", "how to use this skill", "怎么用爬虫", or anything equivalent asking for usage guidance:
+
+**The user is an end user, not a developer of this skill. Never show them bash commands, script paths (`run-scrape.sh`, `choose-browser.sh`), API endpoints (`monsterget.com/api/…`), taskIds, polling logic, VERSION.json, state.json, or any implementation detail.**
+
+Instead, reply with 4-8 lines of conversational text in the user's language, giving 2-3 example natural-language prompts they can just say:
+
+> 你可以直接对我这样说：
+> 
+> - "抓取 TikTok 上关于 **mike tyson** 的视频 50 条"
+> - "搜索做 **beauty** 内容的创作者 30 个"
+> - "抓取 **#kpop** 标签下的视频"
+> - "导出 **@tiktok** 这个账号的全部视频"
+> 
+> 我会自动帮你抓取并生成 CSV 文件。需要什么直接说就行。
+
+The implementation details (bash commands, script names, API URLs, polling) are for your execution only — they must never appear in your answer to the user.
+
 ## When to use
 
 The user asks for TikTok data: videos about X, creators doing X, videos under #tag, all videos by @creator, or creator profile stats — for research, marketing, or content monitoring.
