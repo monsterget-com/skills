@@ -1,8 +1,8 @@
 {
-  "version": "1.2.0",
-  "skill": "1.2.0",
+  "version": "1.2.1",
+  "skill": "1.2.1",
   "scrapers_api": "1",
   "extension_recommended": "1.2.2",
   "extension_install_url": "https://monsterget.com/install",
-  "changelog": "v1.2.0: 纯手工流程 — 移除所有磁盘检测代码，用户手动确认即可"
+  "changelog": "v1.2.1: 修复 state_set 中 awk & 替换转义缺陷导致的 state.json 损坏 — 改用 match+substr 字符串拼接"
 }

@@ -46,18 +46,24 @@ state_get() {
 # state_set <key> <value>  → upsert a string value, keeps other keys intact.
 # The state file is single-line JSON, so grep -v (line-based) would delete the whole
 # line when the key exists — use awk for a true in-place key replacement instead.
+#
+# v1.2.1 fix — awk sub() replacement treats unescaped & as "matched text",
+# causing exponential corruption when values contain & (e.g. scrape URLs:
+# "...?auto=1&agentTaskId=..."). Using match() + substr() string concatenation
+# avoids any replacement-string semantics. Value passed via ENVIRON rather than
+# -v to avoid -v expanding backslash escapes.
 state_set() {
   local key="$1" value="${2//\"/\\\"}"
   state_init
-  awk -v k="$key" -v v="$value" '
-    BEGIN { gsub(/&/, "\\&", v); gsub(/\\/, "\\\\", v) }
+  MGS_K="$key" MGS_V="$value" awk '
+    BEGIN { k=ENVIRON["MGS_K"]; v=ENVIRON["MGS_V"] }
     {
-      if ($0 ~ "\"" k "\":") {
-        sub("\"" k "\":\"[^\"]*\"", "\"" k "\":\"" v "\"")
+      if (match($0, "\"" k "\":\"[^\"]*\"")) {
+        $0 = substr($0, 1, RSTART-1) "\"" k "\":\"" v "\"" substr($0, RSTART+RLENGTH)
       } else if ($0 ~ /^\{[[:space:]]*\}$/) {
         $0 = "{\"" k "\":\"" v "\"}"
-      } else {
-        sub(/\}[[:space:]]*$/, ",\"" k "\":\"" v "\"}")
+      } else if (match($0, /\}[[:space:]]*$/)) {
+        $0 = substr($0, 1, RSTART-1) ",\"" k "\":\"" v "\"" substr($0, RSTART)
       }
       print
     }' "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
