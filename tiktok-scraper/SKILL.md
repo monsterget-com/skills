@@ -84,6 +84,7 @@ Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
 
 | Script | When | What it does |
 |--------|------|--------------|
+| `update-skill.sh` | Session start (Step 0a) — auto-update check | Compares local skill version against GitHub, auto-downloads updates. Also outputs `scrapers_api` for version tracking |
 | `choose-browser.sh <edge\|chrome>` | Installation — user picks a browser | Saves the browser preference (`browser_pref`) to state |
 | `run-scrape.sh <pagePath> <param> <value> [count]` | Every scrape | End-to-end: taskId → open browser → verify process → poll → download CSV |
 | `set-download-dir.sh [<dir>]` | First scrape (ask once) | Choose where CSVs are saved. No arg = OS default Downloads dir |
