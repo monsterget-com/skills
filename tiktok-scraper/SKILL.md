@@ -175,15 +175,67 @@ Each scraper contains all the info needed to build the scrape URL:
 
 ## The flow
 
-### 0. Session start — fetch the scraper list (once)
+### 0. Session start — version check + fetch scrapers (once per session)
 
-At the **start of the first task of a session**, before anything else, fetch the live scraper list. Keep the result for the whole session — never re-fetch it between tasks in the same conversation:
+#### 0a. Version check — auto-update
+
+Run the update script at the **start of the very first task of a session**:
+
+```bash
+bash "$SCRIPTS/update-skill.sh"
+```
+
+The script outputs JSON. If `updated` is `true`, tell the user the skill was updated and what changed (`changelog`). The output's `scrapers_api` field is informational — the version this skill release was built against; do **not** treat it as the session baseline (that is the last-observed *server* version, read in 0b).
+
+**Read the last-seen scrapers API version** (the baseline for comparison) from the local version file:
+
+```bash
+SCRAPERS_API_SEEN="$(sed -n 's/.*"scrapers_api"[[:space:]]*:[[:space:]]*"\([0-9]*\)".*/\1/p' "$HOME/.monsterget/version.json" 2>/dev/null)"
+[ -z "$SCRAPERS_API_SEEN" ] && SCRAPERS_API_SEEN="0"
+```
+
+If this script or the local version file is missing (old install that predates version tracking), `SCRAPERS_API_SEEN` defaults to `"0"` — the first fetch below will treat the current API version as the baseline and NOT notify.
+
+#### 0b. Fetch the scraper list + version comparison
+
+At the **start of the first task of a session** (after 0a), fetch the live scraper list and compare versions:
 
 ```bash
 SCRAPERS="$(curl -s "$BASE_URL/api/agent/scrapers")"
 ```
 
-If this fails (platform unreachable), tell the user and stop. See "Scrape types" for how to map a request to `pagePath` + `param` + `countMax`.
+**Parse `version` from the response** and compare it with the last-seen scrapers API version:
+
+```bash
+CURRENT_API_VER="$(printf '%s' "$SCRAPERS" | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p')"
+if [ -n "$CURRENT_API_VER" ] && [ "$CURRENT_API_VER" != "$SCRAPERS_API_SEEN" ]; then
+  echo "SCRAPER_VERSION_CHANGED=$CURRENT_API_VER (was $SCRAPERS_API_SEEN)"
+fi
+```
+
+If the version changed (or `SCRAPER_VERSION_CHANGED` is set) **and** `SCRAPERS_API_SEEN` was **not** `"0"` (i.e. this is not the first-ever check), **tell the user in Chinese**:
+
+> 服务器爬虫目录已更新（v{旧版本}→v{新版本}），已新增了一些平台。请确认是否有新的抓取需求。
+
+If this is the **first ever check** (`SCRAPERS_API_SEEN` = `"0"`), treat the current API version as the established baseline — save it and do NOT notify.
+
+**After confirming or notifying**, persist the new version to the local version file so the next session compares against it:
+
+```bash
+NEW_API_VER="$(printf '%s' "$SCRAPERS" | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p')"
+if [ -n "$NEW_API_VER" ]; then
+  LOCAL_VER_FILE="$HOME/.monsterget/version.json"
+  mkdir -p "$(dirname "$LOCAL_VER_FILE")"
+  [ -f "$LOCAL_VER_FILE" ] || echo '{"skill_version":"0","extension_version":"unknown"}' > "$LOCAL_VER_FILE"
+  TMP="$(mktemp)"
+  jq --arg v "$NEW_API_VER" '.scrapers_api = $v' "$LOCAL_VER_FILE" > "$TMP" && mv "$TMP" "$LOCAL_VER_FILE" 2>/dev/null || true
+  SCRAPERS_API_SEEN="$NEW_API_VER"
+fi
+```
+
+**If the fetch fails** (platform unreachable), tell the user and stop. See "Scrape types" for how to map a request to `pagePath` + `param` + `countMax`.
+
+Keep the `SCRAPERS` value and `SCRAPERS_API_SEEN` for the whole session — never re-fetch between tasks in the same conversation.
 
 ### 1. Pre-task reminder (every scrape)
 
