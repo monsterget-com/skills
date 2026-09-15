@@ -189,6 +189,12 @@ Replace `{browser}` with the value from `browser_pref` (translated: "Edge" or "C
 
 **This sentence is mandatory on every single scrape.** It is the user's only confirmation that the AI is about to open their browser. Do not skip it, shorten it, or merge it into a "processing…" status line.
 
+**Append the window-visibility hint to the same reminder** (one message, not a separate prompt):
+
+> 请缩小当前软件窗口，保持爬虫窗口部分可见（完全遮挡爬虫窗口会影响内容加载，导致抓取失败）。
+
+A fully-covered window gets its rendering throttled by the browser, which stalls the scraper page's loading. Keep the browser window at least partially visible for the scrape to run. This hint goes in every reminder, exactly once, in the user's language.
+
 Proceed to Step 2 without waiting for a reply — the reminder is informational, not a question.
 
 ### 2. Run the scrape
@@ -391,6 +397,8 @@ The limit counts **running tasks**, not open windows:
 我将打开 {浏览器}（已安装 MonsterGet 扩展），
 访问 monsterget.com（需已登录），
 抓取 tiktok.com（需已登录）的指定内容：{用户的具体请求}。
+
+请缩小当前软件窗口，保持爬虫窗口部分可见（完全遮挡爬虫窗口会影响内容加载，导致抓取失败）。
 ```
 
 `{浏览器}` 替换成 `browser_pref` 的值（edge 译成"Edge"，chrome 译成"Chrome"）。
