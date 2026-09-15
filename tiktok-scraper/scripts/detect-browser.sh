@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# ═══════════════════════════════════════════════════════════════════════════
+# ARCHIVED — reference only. Pure manual flow: the AI never runs this script.
+# The user confirms which browser has the MonsterGet extension installed
+# (SKILL.md Step I). This script is kept for history; do not call it.
+# Its behavior is now a no-op: detect_browser() in lib.sh only reads the
+# saved `browser_pref` (no disk scan, no extension probe).
+# ═══════════════════════════════════════════════════════════════════════════
 # detect-browser.sh — detect which browser(s) have the MonsterGet extension.
 #
 # Usage:  bash detect-browser.sh

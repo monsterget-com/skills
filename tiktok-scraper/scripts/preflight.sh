@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# ═══════════════════════════════════════════════════════════════════════════
+# ARCHIVED — reference only. Pure manual flow: the AI never runs this script.
+# The user manually confirms all three conditions (extension, monsterget login,
+# TikTok login) without code verification (SKILL.md Step I-III).
+# This script is kept for history; do not call it.
+# ═══════════════════════════════════════════════════════════════════════════
 # preflight.sh — silent programmatic preflight (SKILL.md Step 0.6).
 #
 # Runs: browser/extension detection → platform reachability → MonsterGet login → TikTok login.

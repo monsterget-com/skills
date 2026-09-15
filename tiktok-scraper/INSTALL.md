@@ -50,22 +50,23 @@ echo 'For TikTok data, read ~/.monsterget/skill/SKILL.md' >> .kilocode/rules/tik
 ## Verify the install
 
 ```bash
-# Run the silent preflight (safe, no user interaction needed)
-bash ~/.monsterget/skill/scripts/preflight.sh
+# Quick check that the SKILL.md and scripts are in place
+ls ~/.monsterget/skill/SKILL.md && echo "installed"
 ```
-
-It should print JSON with your current setup status. If `extension: false`, you need to install the browser extension first (see below).
+(No automated checks — the AI will guide you manually.)
 
 ## First-time user setup (~2 minutes, done once)
 
-The moment the skill is installed, the AI **immediately guides** you through the 3 steps — one at a time, verifying each before moving on. You will see this in chat:
+The moment the skill is installed, the AI **guides you** through 3 manual steps (no code checks, you just confirm):
+
+You need 3 things, all in the **same browser** (Edge or Chrome — pick one):
 
 | Step | What to do | URL |
 |------|-----------|-----|
-| ① | Install the MonsterGet browser extension (Edge or Chrome) | [monsterget.com/install](https://monsterget.com/install) |
+| ① | Install the MonsterGet browser extension | [monsterget.com/install](https://monsterget.com/install) |
 | ② | Log in to monsterget.com (same browser) | [monsterget.com](https://monsterget.com) |
 | ③ | Log in to TikTok (same browser) | [tiktok.com](https://www.tiktok.com) |
 
-All 3 must pass the AI's automatic checks before it lets you scrape. When they do, the AI offers example prompts — e.g. "抓取关于 'mike tyson' 的 TikTok 视频 50 条".
+Tell the AI which browser you used, say "好了", and the AI saves your choice. **No automatic checks — you confirm manually.** Then the AI offers example prompts — e.g. "抓取关于 'mike tyson' 的 TikTok 视频 50 条".
 
-If your client just printed this table as static text instead of walking you through it step by step, that's a weak client — the checks still protect you, but you can say "检查一下这 3 项" to force the programmatic verification.
+> 💡 This skill uses **pure manual confirmation** — the AI never scans your disk or opens test windows. You know your browser best. If something fails later, the AI will ask you to check the 3 conditions again — still manually.

@@ -279,10 +279,10 @@ bash "$SCRIPTS/run-scrape.sh" /tiktok-search-video query "mike tyson" 20
 ```
 
 The script handles, in order:
-1. Re-detect the browser (the extension should be installed — user guaranteed it)
+1. Read the saved browser preference (the user chose during installation)
 2. Generate a taskId
 3. Build the URL (`{SITE_URL}{pagePath}?auto=1&agentTaskId=...&{param}=...&count=N`) — **values are URL-encoded by the script**, so spaces and Chinese characters are safe
-4. Open it in the detected browser (fire-and-forget)
+4. Open it in the chosen browser (fire-and-forget)
 5. Verify the browser process actually started
 6. Poll status every 5s until `ready` / `failed` / `downloaded` / `not_found` (5-minute timeout)
 7. Download the CSV with the server's semantic filename into the resolved download dir

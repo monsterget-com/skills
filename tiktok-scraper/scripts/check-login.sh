@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
+# ═══════════════════════════════════════════════════════════════════════════
+# ARCHIVED — reference only. Pure manual flow: the AI never runs this script.
+# Login conditions are confirmed by the user manually (SKILL.md Step III).
+# This script is kept for history; do not call it.
+# ═══════════════════════════════════════════════════════════════════════════
 # check-login.sh — verify a login by opening the platform's login-check page and polling.
 #
 # Usage:  bash check-login.sh monsterget|tiktok
-# Reads:  state.json (browser hint) — but re-detects the browser live, never trusts state alone
+# Reads:  state.json (browser_pref)
 # Writes: state.json (monsterget_login | tiktok_login)
 # Stdout: {"logged_in":true,"task_id":"...","target":"tiktok"}
 # Exit:   0 = logged in, 1 = not logged in / could not check
 #
-# Env: MONSTERGET_POLLS — poll count (default 12 × 5s = 60s). preflight uses 3 for a short probe.
+# Env: MONSTERGET_POLLS — poll count (default 12 × 5s = 60s).
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib.sh

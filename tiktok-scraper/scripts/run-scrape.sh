@@ -6,7 +6,7 @@
 #   bash run-scrape.sh /tiktok-tag query beauty 30
 #   bash run-scrape.sh /tiktok-profile usernames "mike,jenifer,tiktok" 3
 #
-# Reads:  state.json (browser hint) — browser is re-detected live
+# Reads:  state.json (browser_pref) — which browser the user chose during installation
 # Writes: state.json (last_task_id, last_scrape_url)
 # Stdout: {"status":"ready","taskId":"...","file":"mike-20-....csv","rowCount":20,"url":"..."}
 # Exit:   0 = CSV downloaded, 1 = failed (stdout has status + error)
@@ -30,17 +30,20 @@ COUNT="${4:-}"
 
 detect_browser
 if [ "$BROWSER" = "none" ]; then
-  echo '{"status":"failed","error":"extension not detected — run preflight.sh / Step 0 first"}'
+  echo '{"status":"failed","error":"no browser preference saved — run choose-browser.sh first"}'
   exit 1
 fi
 
-# More than one browser has the extension and the user never chose one.
-# Do NOT guess — make the caller ask (choose-browser.sh) and re-run.
-if [ "$CHOSEN_BY" = "default" ]; then
-  printf '{"status":"need_browser_choice","browsers":%s,"error":"more than one browser has the MonsterGet extension — ask the user which to use, save it with choose-browser.sh, then re-run"}\n' \
-    "$(browser_choices_json)"
-  exit 1
-fi
+# ARCHIVED — pure manual flow. We never scan the disk for the extension and
+# never refuse based on "more than one browser detected". The user already
+# confirmed which browser to use (SKILL.md Step I-II); browser_pref above IS
+# that confirmation.
+#
+# if [ "$CHOSEN_BY" = "default" ]; then
+#   printf '{"status":"need_browser_choice","browsers":%s,"error":"more than one browser has the MonsterGet extension — ask the user which to use, save it with choose-browser.sh, then re-run"}\n' \
+#     "$(browser_choices_json)"
+#   exit 1
+# fi
 
 TASK_ID="$(generate_task_id)"
 if [ -z "$TASK_ID" ]; then

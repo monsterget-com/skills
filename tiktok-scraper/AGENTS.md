@@ -15,12 +15,12 @@ When the user asks "怎么使用", "how to use this skill", "怎么用爬虫", o
 Instead, reply with 4-8 lines of conversational text in the user's language, giving 2-3 example natural-language prompts they can just say:
 
 > 你可以直接对我这样说：
-> 
+>
 > - "抓取 TikTok 上关于 **mike tyson** 的视频 50 条"
 > - "搜索做 **beauty** 内容的创作者 30 个"
 > - "抓取 **#kpop** 标签下的视频"
 > - "导出 **@tiktok** 这个账号的全部视频"
-> 
+>
 > 我会自动帮你抓取并生成 CSV 文件。需要什么直接说就行。
 
 The implementation details (bash commands, script names, API URLs, polling) are for your execution only — they must never appear in your answer to the user.
@@ -37,43 +37,34 @@ AI generates taskId ──▶ opens browser URL ──▶ page creates task, ext
 
 No server-side TikTok scraping. The scrape runs inside the user's real TikTok session (logged in, with the MonsterGet extension). That's what keeps accounts safe from bans.
 
-## First-run flow (run this right after install)
+## First-run flow (pure manual — no code verification)
 
-The user needs 3 things. Show them the complete guide FIRST, then verify.
+The user needs 3 things, all in the **same browser** (the one they chose). The AI shows the guide and the user confirms manually. **No script checks anything.**
 
-**a. Show the full 3-step guide with links** (in the user's language) — so the user knows exactly what to prepare before anything is checked:
+**a. Show the full 3-step guide with links** (in the user's language) — so the user knows exactly what to prepare:
 
 > 用这个 skill 前需要准备 3 件事（都用同一个浏览器：**Edge 或 Chrome**）：
 > ① 安装 MonsterGet 扩展 → 打开 https://monsterget.com/install 安装
 > ② 登录 monsterget.com → 打开 https://monsterget.com 注册并登录
 > ③ 登录 TikTok → 打开 https://www.tiktok.com 登录你的账号
 >
-> 准备好了回复"好了"（或"已装好/已登录"），我会自动检测。
+> 装好扩展后告诉我装在了哪个浏览器（回复"Edge"或"Chrome"），全部准备好了回复"好了"。
 
-**b. WAIT** for the user to say they're ready (e.g. "好了"). Don't run checks before this — the user needs the guide first.
+**b. WAIT** for the user to reply with the browser name and "好了". **Never run any detection script, never scan the disk, never verify programmatically.** The user's manual confirmation is the only check.
 
-**c. VERIFY everything** — run the silent pre-check:
+**c. Save the browser choice** — whatever the user said, save it directly:
+
 ```bash
-bash ~/.monsterget/skill/scripts/preflight.sh
+bash ~/.monsterget/skill/scripts/choose-browser.sh edge
+# (or chrome — user said Chrome)
+# → {"ok":true,"browser":"edge",...}
 ```
 
-Output fields: `ready` (all done), `next` (first failing step, or `""`), `extension`, `monsterget_login`, `tiktok_login`, `browser`, `browsers`, `need_choice`.
+The choice persists across sessions. Never second-guess it with a disk scan.
 
-- `ready:true` → jump to **d**.
-- `next:"choose_browser"` (`need_choice:true`) → **both browsers have the extension and no choice is saved.** Ask the user which to use, save it: `bash ~/.monsterget/skill/scripts/choose-browser.sh edge` (or `chrome`), then **re-run preflight.sh**. Never guess — the login checks would run against the wrong browser.
-- `ready:false` otherwise → show the status with ✅/❌ per item, then guide **only** the ❌ items one at a time, starting at `next`. Per-step protocol: TELL (what to do + URL + which browser) → WAIT for "done" → VERIFY with that step's script → REPORT ✅/❌. Loop until pass, then next. Never advance past a failed step.
+**d. Confirm + offer example prompts:**
 
-| Step | Verify with | URL |
-|------|-------------|-----|
-| ① Extension | `bash ~/.monsterget/skill/scripts/detect-browser.sh` → `extension:true` | https://monsterget.com/install |
-| ② Login MonsterGet | `bash ~/.monsterget/skill/scripts/check-login.sh monsterget` | https://monsterget.com |
-| ③ Login TikTok | `bash ~/.monsterget/skill/scripts/check-login.sh tiktok` | https://www.tiktok.com |
-
-If the user says "已装好 / already done", still run the checks. Never trust verbal claims alone.
-
-**d. When all three pass → report + offer example prompts:**
-
-> ✅ 3 项全部通过，可以开始抓取了！
+> ✅ 都准备好了，可以开始抓取了！
 > 试试下面任意一句：
 > - 抓取关于 "mike tyson" 的 TikTok 视频 50 条
 > - 找出做 "beauty" 内容的 TikTok 创作者 30 个
@@ -81,13 +72,7 @@ If the user says "已装好 / already done", still run the checks. Never trust v
 > - 抓取 @tiktok 这位创作者的全部视频
 > - 抓取 @mike、@jenifer、@tiktok 的主页数据
 
-## Cold-start contract
-
-`PREFLIGHT_DONE` is `false` at the start of every new conversation. Memory and prior sessions do **not** set it. You must verify programmatically before scraping.
-
-Two entry paths, both ending in verification:
-- **First run / user says not set up** → the **First-run flow** above (guide each missing item one at a time: tell → wait for "done" → verify → report; never present a checklist)
-- **Setup presumed already done** → run `preflight.sh` silently. If `ready:true`, scrape. If `ready:false`, fall back to the First-run flow starting at `next`.
+If anything is missing later (scrape fails), use the failure checklist in SKILL.md — again, manual only, never a script check.
 
 ## Scripts
 
@@ -105,26 +90,16 @@ Each script prints one JSON object to stdout and exits 0 on success / 1 on failu
 
 | Script | Purpose |
 |--------|---------|
-| `preflight.sh` | Full silent check — extension, browser choice, platform reachability, both logins. |
-| `detect-browser.sh` | Which browser(s) have the extension. Reports `browsers`, `multiple`, `need_choice`. Use for step ①. |
-| `choose-browser.sh <edge\|chrome>` | Save the user's browser choice when several have the extension (`need_choice:true`). |
-| `check-login.sh <target>` | Open login-check page, poll for logged-in status. `target=monsterget` or `tiktok`. Use for steps ②/③. |
+| `update-skill.sh` | Session start — auto-update check. Compare local version against GitHub, auto-download updates. |
+| `choose-browser.sh <edge\|chrome>` | Save the user's browser choice (manual — no verification, saves whatever the user says). |
 | `run-scrape.sh <pagePath> <param> <value> [count]` | Full scrape: generate taskId, open browser, verify process, poll, download CSV. |
 | `set-download-dir.sh [<dir>]` | Choose where scraped CSVs are saved (persists in state). No arg = system Downloads. Ask the user once per machine. |
 
+> **🚫 Never run `detect-browser.sh`, `check-login.sh`, or `preflight.sh`** — archived reference only. The user guarantees all conditions manually. The AI must not call them during installation, before a scrape, or on failure.
+
 ### Browser choice
 
-`detect-browser.sh` scans both Edge and Chrome. If only one has the extension, it is used silently. If **both** have it and the user hasn't chosen before (`need_choice:true`), ask once — *"两个浏览器都装了 MonsterGet 扩展，你想用哪个？"* — then save it with `choose-browser.sh`. The choice persists, so it is asked at most once per machine. `run-scrape.sh` refuses with `status:"need_browser_choice"` until a choice is saved.
-
-### Preflight
-
-```bash
-bash ~/.monsterget/skill/scripts/preflight.sh
-# → {"ready":false,"next":"extension","extension":true,"platform_reachable":true,
-#    "monsterget_login":true,"tiktok_login":true,"browser":"edge","os":"windows"}
-```
-
-When `ready` is `false`, read `next` and follow the **First-run flow** above from that step. `next` is empty when `ready` is `true` — the user can scrape immediately.
+During installation the user verbally confirms which browser has the MonsterGet extension; the AI saves it with `choose-browser.sh`. `run-scrape.sh` reads the saved `browser_pref` and opens that browser. No detection, no scanning, no second-guessing.
 
 ### Scrape
 
@@ -155,13 +130,14 @@ Output on success: `{"status":"ready","taskId":"...","file":"...csv","rowCount":
 - **First scrape each session**: tell the user once that this drives their real TikTok account (user's account, user's responsibility).
 - **Where CSVs are saved**: the first time you scrape, ask the user where CSV files should go — "保存到系统下载目录（默认）可以吗？还是换个路径？" Then save their choice with `set-download-dir.sh` (no arg = system Downloads, or pass a path). It persists, so ask at most once per machine; `run-scrape.sh` reports the `dir` in its output.
 - **On failure**: use the error field to explain exactly what to fix — don't just say "try again".
+- **Pre-task reminder**: before every scrape, read `~/.monsterget/state.json` and say the reminder sentence from SKILL.md — this is the user's only confirmation that the browser is about to open. Never skip it.
 
 ## Common errors
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
+| `not_found` / `timeout` | Extension missing, not logged in, or the tab was closed | Run the 3-point manual checklist (SKILL.md Step 3) — the user checks each in the browser by hand |
 | `platform_reachable: false` | monsterget.com unreachable | Ask user to check the URL manually |
-| `extension: false` | Browser extension not installed | Guide to https://monsterget.com/install |
 | `browser did not start` | Launch command failed | Ask user to open the URL manually in the extension browser |
 | Not ready in 5 minutes | Extension missing / not logged in / tab closed | Keep the tab open until the scrape finishes |
 | `already_downloaded` | CSV already fetched | Run again (new taskId) |

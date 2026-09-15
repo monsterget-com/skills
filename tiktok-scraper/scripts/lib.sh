@@ -64,26 +64,24 @@ state_set() {
 }
 
 # ---------------------------------------------------------------------------
-# Browser detection — which browser(s) have the MonsterGet extension installed.
-# Sets globals:
-#   BROWSERS         space-separated list of browsers that HAVE the extension
-#   BROWSER          the chosen one (edge|chrome|none)
-#   BROWSER_EXE      process/exe name for the chosen one
+# Browser selection — pure manual flow (no disk detection).
+# The user manually confirms which browser has the MonsterGet extension
+# installed (SKILL.md). We only read the saved `browser_pref` from state and
+# look up that browser's launch paths:
+#   BROWSER         the chosen one (edge|chrome|none)
+#   BROWSER_EXE     process/exe name for the chosen one
 #   BROWSER_FULLPATH absolute path to the chosen one's binary (may be empty)
-#   CHOSEN_BY        preference | default | only_one | none
+#   CHOSEN_BY       preference (always, in pure manual flow)
 #
-# Selection order:
-#   1. the user's saved choice (state key `browser_pref`), if that browser still
-#      has the extension,
-#   2. otherwise the first browser found,
-#   3. the caller may prompt the user when BROWSERS lists more than one and
-#      CHOSEN_BY is `default` (see choose-browser.sh).
+# ARCHIVED: `_probe_browser` (disk scan for the extension) is kept below as
+# reference only — the AI must never call it, and it always returns 1.
 # ---------------------------------------------------------------------------
 BROWSER="none"; BROWSER_EXE=""; BROWSER_FULLPATH=""; BROWSERS=""; CHOSEN_BY="none"
 
 # _browser_conf <name> → "<user_data_dir>|<full_binary_path>|<exe_name>"
-# First field is the browser's USER DATA dir (Default profile inside), not the
-# Preferences file — extension detection scans inside it (see _probe_browser).
+# First field is the browser's USER DATA dir (Default profile inside) —
+# historically used by the archived `_probe_browser` for extension scanning.
+# In pure manual flow we only use the path fields to launch the browser.
 _browser_conf() {
   case "$(detect_os):$1" in
     windows:edge)
@@ -113,7 +111,13 @@ _browser_conf() {
 }
 
 # _probe_browser <name> → 0 if that browser has the MonsterGet extension
-# Covers BOTH install types (they land in different places on disk):
+# ══════════════════════════════════════════════════════════════════════
+# ARCHIVED — pure manual flow. The AI never scans the disk for the extension;
+# the user confirms manually which browser they installed it in (SKILL.md).
+# Kept only as reference; always returns 1 (nothing detected).
+# --------------------------------------------------------------------------
+# OLD DISK SCAN (reference only — do not re-enable):
+#   Covers BOTH install types (they land in different places on disk):
 #   ① Preferences manifest snapshot — Chrome/Edge embed the extension manifest
 #      (incl. "name") inside Default/Preferences (and Edge's Secure Preferences),
 #      for store-installed AND load-unpacked alike. Match the escaped form
@@ -121,20 +125,21 @@ _browser_conf() {
 #   ② Physical Extensions/<id>/manifest.json — store-installed only; fallback
 #      in case the Preferences snapshot is not flushed yet.
 _probe_browser() {
-  local udir pref m
-  udir="$(_browser_conf "$1" | cut -d'|' -f1)"
-  [ -n "$udir" ] || return 1
-
-  # ① manifest name snapshot in Preferences / Secure Preferences (Default profile)
-  for pref in "$udir/Default/Preferences" "$udir/Default/Secure Preferences"; do
-    [ -f "$pref" ] && grep -aqE '\\"name\\": ?\\"MonsterGet' "$pref" 2>/dev/null && return 0
-  done
-
-  # ② physical folder (store-installed fallback)
-  for m in "$udir/Default/Extensions/"*/*/manifest.json; do
-    [ -f "$m" ] && grep -q 'MonsterGet' "$m" 2>/dev/null && return 0
-  done
-
+  # local udir pref m
+  # udir="$(_browser_conf "$1" | cut -d'|' -f1)"
+  # [ -n "$udir" ] || return 1
+  #
+  # # ① manifest name snapshot in Preferences / Secure Preferences (Default profile)
+  # for pref in "$udir/Default/Preferences" "$udir/Default/Secure Preferences"; do
+  #   [ -f "$pref" ] && grep -aqE '\\"name\\": ?\\"MonsterGet' "$pref" 2>/dev/null && return 0
+  # done
+  #
+  # # ② physical folder (store-installed fallback)
+  # for m in "$udir/Default/Extensions/"*/*/manifest.json; do
+  #   [ -f "$m" ] && grep -q 'MonsterGet' "$m" 2>/dev/null && return 0
+  # done
+  #
+  # return 1
   return 1
 }
 
@@ -147,40 +152,35 @@ _select_browser() {
   BROWSER_EXE="$(printf '%s' "$conf" | cut -d'|' -f3)"
 }
 
-# detect_browser — returns 0 if at least one browser has the extension
+# detect_browser — select the user's saved browser preference.
+# ═══════════════════════════════════════════════════════════════
+# Pure manual flow: no disk scan, no extension probe. The user
+# has manually confirmed which browser has the extension installed
+# (see SKILL.md Step I-II). We just read browser_pref from state
+# and look up the hardcoded paths for that browser.
 detect_browser() {
   BROWSER="none"; BROWSER_EXE=""; BROWSER_FULLPATH=""; BROWSERS=""; CHOSEN_BY="none"
-  local n found=""
-  for n in edge chrome; do
-    _probe_browser "$n" && found="$found $n"
-  done
-  BROWSERS="${found# }"
-  [ -z "$BROWSERS" ] && return 1
-
   local pref
   pref="$(state_get browser_pref)"
-  case " $BROWSERS " in
-    *" $pref "*)  _select_browser "$pref"; CHOSEN_BY="preference" ;;
-    *)
-      if [ "$BROWSERS" = "edge" ] || [ "$BROWSERS" = "chrome" ]; then
-        CHOSEN_BY="only_one"
-      else
-        CHOSEN_BY="default"
-      fi
-      _select_browser "${BROWSERS%% *}"
-      ;;
-  esac
-  return 0
+  if [ -n "$pref" ] && _select_browser "$pref" 2>/dev/null; then
+    CHOSEN_BY="preference"
+    BROWSERS="$pref"
+    return 0
+  fi
+  return 1
 }
 
 # browser_choices_json — the detected browsers as a JSON array literal
+# ARCHIVED — pure manual flow never builds a multi-browser list.
+# Kept for backward compatibility; always returns [BROWSERS] (one element).
 browser_choices_json() {
-  local n out=""
-  for n in $BROWSERS; do
-    [ -n "$out" ] && out="$out,"
-    out="$out\"$n\""
-  done
-  printf '[%s]' "$out"
+  # local n out=""
+  # for n in $BROWSERS; do
+  #   [ -n "$out" ] && out="$out,"
+  #   out="$out\"$n\""
+  # done
+  # printf '[%s]' "$out"
+  printf '["%s"]' "$BROWSERS"
 }
 
 # ---------------------------------------------------------------------------
