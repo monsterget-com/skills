@@ -464,7 +464,7 @@ The limit counts **running tasks**, not open windows:
 访问 monsterget.com（需已登录），
 抓取 tiktok.com（需已登录）的指定内容：{用户的具体请求}。
 
-请缩小当前软件窗口，保持爬虫窗口部分可见（完全遮挡爬虫窗口会影响内容加载，导致抓取失败）。
+重要：请缩小当前软件窗口，保持爬虫窗口部分可见（完全遮挡爬虫窗口会影响内容加载，导致抓取失败）。
 ```
 
 `{浏览器}` 替换成 `browser_pref` 的值（edge 译成"Edge"，chrome 译成"Chrome"）。
