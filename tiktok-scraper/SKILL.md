@@ -136,25 +136,42 @@ That is it. No detection scripts, no verification loops. The user guarantees the
 
 > ⚠️ **One-browser rule**: the extension, the monsterget.com login, and the TikTok login must all be in the **same browser** (the one the user chose). If they later switch browsers, re-run Steps I–III.
 
-## Scrape types
+## Scrape types — auto-discovered once per session
 
-> ⚠️ **This table may be stale.** New scrapers are NOT auto-synced into this skill file. Before mapping the user's request to a type, fetch the live list (zero-auth, read-only) and use it if it differs from the table:
-> ```bash
-> curl -s "$BASE_URL/api/agent/scrapers"
-> ```
-> Use the `type` + `page` + `param` + `countMax` values returned. The table below is a snapshot that matches current scrapers.
+**Fetch the live scrapers list at session start.** This is the single source of truth — the AI uses it to map the user's request to the correct `pagePath` + `param` + `countMax`. New platforms (LinkedIn, etc.) are automatically available the moment they are added server-side; no SKILL.md update needed.
 
-| Type | pagePath | Param | Default count | Max |
-|------|----------|-------|---------------|-----|
-| Video search | `/tiktok-search-video` | `query` | 50 | 300 |
-| Creator search | `/tiktok-search-user` | `query` | 30 | 300 |
-| Hashtag search | `/tiktok-tag` | `query` | 30 | 300 |
-| Creator videos | `/tiktok-user-videos` | `username` | 50 | 300 |
-| Creator profile | `/tiktok-profile` | `username` | 1 | 1 |
+```bash
+SCRAPERS="$(curl -s "$BASE_URL/api/agent/scrapers")"
+```
 
-Username accepts `@name` or full profile URL (server normalizes).
+Each scraper contains all the info needed to build the scrape URL:
+
+| Field | Example | Purpose |
+|-------|---------|---------|
+| `type` | `search_video` | Stable identifier |
+| `name` | `TikTok 视频搜索` | Human-readable — helps the AI match user intent |
+| `page` | `/tiktok-search-video` | Use as `<pagePath>` in `run-scrape.sh` |
+| `param` | `query` | Use as `<param>` in `run-scrape.sh` |
+| `defaultCount` / `countMax` | `50` / `300` | Default and cap for `<count>` |
+| `usage` | `/tiktok-search-video?...` | URL template for reference |
+
+**Rules:**
+1. `SCRAPERS` is set **once per session** (at the start, before the first scrape). All scrapes in the same session reuse it.
+2. To map the user's request, iterate the scrapers array by `name` (or `type`) to find the matching entry, then extract `page` + `param` + `defaultCount`.
+3. Username accepts `@name` or full profile URL (server normalizes).
+4. The static table of current TikTok scrapers is moved to the Appendix — it is for human readability only, never for the AI to map against.
 
 ## The flow
+
+### 0. Session start — fetch the scraper list (once)
+
+At the **start of the first task of a session**, before anything else, fetch the live scraper list. Keep the result for the whole session — never re-fetch it between tasks in the same conversation:
+
+```bash
+SCRAPERS="$(curl -s "$BASE_URL/api/agent/scrapers")"
+```
+
+If this fails (platform unreachable), tell the user and stop. See "Scrape types" for how to map a request to `pagePath` + `param` + `countMax`.
 
 ### 1. Pre-task reminder (every scrape)
 
@@ -326,6 +343,16 @@ The limit counts **running tasks**, not open windows:
 ## Appendix — zh-CN localized user-facing copy
 
 > Use the Chinese wording below **only** when the user writes to you in Chinese. For all other languages, translate the English text in the body yourself. Never show this appendix to the user.
+
+### Current scraper types (for reference only — the AI fetches live data, never uses this table)
+
+| Type | pagePath | Param | Default | Max |
+|------|----------|-------|---------|-----|
+| Video search | `/tiktok-search-video` | `query` | 50 | 300 |
+| Creator search | `/tiktok-search-user` | `query` | 30 | 300 |
+| Hashtag search | `/tiktok-tag` | `query` | 30 | 300 |
+| Creator videos | `/tiktok-user-videos` | `username` | 50 | 300 |
+| Creator profile | `/tiktok-profile` | `username` | 1 | 1 |
 
 ### Installation Guide (中文)
 
