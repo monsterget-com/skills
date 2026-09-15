@@ -2,7 +2,7 @@
   "version": "1.1.1",
   "skill": "1.1.0",
   "scrapers_api": "1",
-  "extension_recommended": "2.3.0",
+  "extension_recommended": "1.2.2",
   "extension_install_url": "https://monsterget.com/install",
   "changelog": "v1.1.1: 新增爬虫目录版本跟踪 — 服务端新增爬虫时自动通知用户"
 }
