@@ -247,21 +247,21 @@ At the **start of every scrape task**, before running any command, read the conf
 cat ~/.monsterget/state.json
 ```
 
-Then say (in the user's language):
+**Say the following, fully translated into the user's language** (never mix languages, never show this English original to the user):
 
-> **我将打开 {browser}（已安装 MonsterGet 扩展），访问 monsterget.com（需已登录），抓取 tiktok.com（需已登录）的指定内容：{user's request}。**
+> **I will open {browser} (with MonsterGet extension installed, install guide: https://monsterget.com/install), visit monsterget.com (must be logged in), and scrape tiktok.com (must be logged in) for: {user's request}.**
 
-Replace `{browser}` with the value from `browser_pref` (translated: "Edge" or "Chrome"), and `{user's request}` with the specific task the user asked for (e.g. "关于 'mike tyson' 的视频 50 条").
+Replace `{browser}` with the value from `browser_pref` ("Edge" or "Chrome"), and `{user's request}` with the specific task the user asked for (e.g. "50 videos about 'mike tyson'").
 
 **This sentence is mandatory on every single scrape.** It is the user's only confirmation that the AI is about to open their browser. Do not skip it, shorten it, or merge it into a "processing…" status line.
 
-**Append the window-visibility hint to the same reminder** (one message, not a separate prompt):
+**Append the window-visibility hint to the same reminder** (one message, not a separate prompt), fully translated into the user's language:
 
-> 请缩小当前软件窗口，保持爬虫窗口部分可见（完全遮挡爬虫窗口会影响内容加载，导致抓取失败）。
+> **Important: please shrink the current software window and keep the scraper window partially visible. The browser throttles rendering when the scraper window is fully occluded, which stalls content loading and causes the scrape to fail.**
 
-A fully-covered window gets its rendering throttled by the browser, which stalls the scraper page's loading. Keep the browser window at least partially visible for the scrape to run. This hint goes in every reminder, exactly once, in the user's language.
+This hint goes in every reminder, exactly once, in the user's language.
 
-Proceed to Step 2 without waiting for a reply — the reminder is informational, not a question.
+**Never run `run-scrape.sh` until the reminder has been printed.** Proceed to Step 2 without waiting for a reply — the reminder is informational, not a question.
 
 ### 2. Run the scrape
 
@@ -457,10 +457,10 @@ The limit counts **running tasks**, not open windows:
 
 ### Pre-task reminder (中文)
 
-每次任务前先读配置，然后说：
+英文原文（规范版，正文 Step 1 给出），以下为其中文翻译：
 
 ```
-我将打开 {浏览器}（已安装 MonsterGet 扩展），
+我将打开 {浏览器}（已安装 MonsterGet 扩展，安装指引：https://monsterget.com/install），
 访问 monsterget.com（需已登录），
 抓取 tiktok.com（需已登录）的指定内容：{用户的具体请求}。
 
