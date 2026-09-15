@@ -100,7 +100,7 @@ Depois disso, **cada extração é instantânea.** Nunca mais configure.
 
 **Sem comandos para decorar.** Abra seu assistente de IA (Claude Code / Codex / Cline…), e envie isto no chat:
 
-> 💬 Instale o skill tiktok-collector de https://github.com/rosstzc/monsterget.com-skills
+> 💬 Instale o skill tiktok-collector de https://github.com/monsterget-com/skills
 
 A IA clonará o repositório, instalará o runtime e se configurará.
 

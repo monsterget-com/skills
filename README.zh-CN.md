@@ -100,7 +100,7 @@ AI 负责全部编排：
 
 **不用记任何命令。** 打开你的 AI 助手（Claude Code / Codex / Cursor / Cline…），在对话框里发：
 
-> 💬 安装 skill tiktok-collector，https://github.com/rosstzc/monsterget.com-skills
+> 💬 安装 skill tiktok-collector，https://github.com/monsterget-com/skills
 
 AI 会自动克隆仓库，安装运行时，并配置自身。
 

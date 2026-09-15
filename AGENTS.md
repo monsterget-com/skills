@@ -12,7 +12,7 @@ This repository bundles AI-agent skills that collect web data (TikTok and more) 
 
 Say in your chat:
 
-> Install the tiktok-collector skill from https://github.com/rosstzc/monsterget.com-skills
+> Install the tiktok-collector skill from https://github.com/monsterget-com/skills
 
 ### Self-install contract (for the agent receiving that instruction)
 

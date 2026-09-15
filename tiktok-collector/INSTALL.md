@@ -4,7 +4,7 @@
 
 Open your AI client and send this in the chat:
 
-> 💬 Install the tiktok-collector skill from https://github.com/rosstzc/monsterget.com-skills
+> 💬 Install the tiktok-collector skill from https://github.com/monsterget-com/skills
 
 The AI agent will clone, install, and configure itself. If it asks you to confirm anything, say yes.
 
@@ -23,7 +23,7 @@ That's it. The actual scripts stay at `~/.monsterget/skill/scripts/` so all your
 
 ```bash
 # Step 1 — clone and copy the runtime (once, shared by all clients)
-git clone https://github.com/rosstzc/monsterget.com-skills /tmp/mgs
+git clone https://github.com/monsterget-com/skills /tmp/mgs
 mkdir -p ~/.monsterget/skill
 cp -r /tmp/mgs/tiktok-collector/. ~/.monsterget/skill/
 

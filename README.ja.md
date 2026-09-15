@@ -100,7 +100,7 @@ MonsterGet はゲームを変えます：**収集はあなた自身のブラウ�
 
 **コマンドを覚える必要はありません。** AI アシスタント（Claude Code / Codex / Cline など）を開いて、チャットでこう送るだけ：
 
-> 💬 tiktok-collector スキルをインストールして。https://github.com/rosstzc/monsterget.com-skills
+> 💬 tiktok-collector スキルをインストールして。https://github.com/monsterget-com/skills
 
 AI が自動でリポジトリをクローンし、ランタイムをインストールして、自身を設定します。
 

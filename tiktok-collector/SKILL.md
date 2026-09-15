@@ -415,7 +415,7 @@ The limit counts **running tasks**, not open windows:
 ## Sources
 
 - Platform: [monsterget.com](https://monsterget.com)
-- Skill repository: [github.com/rosstzc/monsterget.com-skills](https://github.com/rosstzc/monsterget.com-skills)
+- Skill repository: [github.com/monsterget-com/skills](https://github.com/monsterget-com/skills)
 
 ---
 

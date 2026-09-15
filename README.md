@@ -100,7 +100,7 @@ After that, **every scrape is instant.** No more setup. Ever.
 
 **No commands to memorize.** Open your AI assistant (Claude Code / Codex / Cursor / Cline…), and send this in the chat:
 
-> 💬 Install the tiktok-collector skill from https://github.com/rosstzc/monsterget.com-skills
+> 💬 Install the tiktok-collector skill from https://github.com/monsterget-com/skills
 
 That's it. The AI clones the repo, installs the runtime, and wires itself up.
 
