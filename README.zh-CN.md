@@ -92,7 +92,7 @@ AI 负责全部编排：
 
 | Skill | 功能 | 平台 |
 |-------|------|------|
-| [🎵 tiktok-scraper](tiktok-scraper/SKILL.md) | TikTok 视频搜索、达人挖掘、标签采集、达人资料导出为 CSV | TikTok |
+| [🎵 tiktok-collector](tiktok-collector/SKILL.md) | TikTok 视频搜索、达人挖掘、标签采集、达人资料导出为 CSV | TikTok |
 
 *更多平台即将支持（LinkedIn、Instagram、X/Twitter、YouTube…）。开 issue 投票。*
 
@@ -100,21 +100,21 @@ AI 负责全部编排：
 
 **不用记任何命令。** 打开你的 AI 助手（Claude Code / Codex / Cursor / Cline…），在对话框里发：
 
-> 💬 安装 skill tiktok-scraper，https://github.com/rosstzc/monsterget.com-skills
+> 💬 安装 skill tiktok-collector，https://github.com/rosstzc/monsterget.com-skills
 
 AI 会自动克隆仓库，安装运行时，并配置自身。
 
 ### AI 具体做的事
 
 1. 克隆本仓库
-2. 复制 `tiktok-scraper/` → `~/.monsterget/skill/` —— **共享运行时目录**
+2. 复制 `tiktok-collector/` → `~/.monsterget/skill/` —— **共享运行时目录**
 3. 在自己对应的 rules 文件中添加一行指针
 
 因为运行时放在一个固定位置（`~/.monsterget/skill/`），**你所有 AI 客户端共享它**。安装一次，Claude Code、Codex、Cursor、Cline 都能用。
 
-**想手动安装？** 见 [tiktok-scraper/INSTALL.md](tiktok-scraper/INSTALL.md) —— 有手动步骤和每个客户端的指针位置。
+**想手动安装？** 见 [tiktok-collector/INSTALL.md](tiktok-collector/INSTALL.md) —— 有手动步骤和每个客户端的指针位置。
 
-**没有 shell 权限**（比如纯网页版 ChatGPT）？把 [`tiktok-scraper/SKILL.md`](tiktok-scraper/SKILL.md) 的内容粘贴到你的自定义指令中，AI 会文字指引你完成每一步。
+**没有 shell 权限**（比如纯网页版 ChatGPT）？把 [`tiktok-collector/SKILL.md`](tiktok-collector/SKILL.md) 的内容粘贴到你的自定义指令中，AI 会文字指引你完成每一步。
 
 ## 🧠 架构（实际发生了什么）
 

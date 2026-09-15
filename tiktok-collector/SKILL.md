@@ -1,9 +1,16 @@
 ---
-name: tiktok-scraper
-description: 🎁 Permanently free — 10M entries on signup, 1 concurrent window. Mild-manual skill: user installs the browser extension + logs in once, then the AI orchestrates repeatable scrapes. TikTok video search, creator discovery, hashtag collection, user video export to CSV. Works with Claude Code, WorkBuddy, Codex, Cursor, Windsurf, Cline, ChatGPT (any AI client). No Python packages, no credentials, no headless setup.
+name: monsterget-tiktok-collector
+description: >-
+  Collect TikTok data (videos, creators, hashtags, profiles) through the
+  user's own real browser — anti-blocking, zero-setup, permanently free.
+  Requires the free MonsterGet browser extension (one-time install), then
+  the AI orchestrates repeatable collections. Supports video search,
+  creator discovery, hashtag collection, and bulk profile export to CSV.
+  Use whenever the user asks for TikTok data or social media research.
+  Works with Claude Code, Codex, Cursor, Windsurf, Cline, ChatGPT.
 ---
 
-# TikTok Scraper
+# TikTok Collector
 
 > 🎁 **Permanently free · 10 million entries on signup · 1 concurrent window for free users**
 > *(Members unlock more parallel windows.)*

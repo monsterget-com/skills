@@ -92,7 +92,7 @@ Después de eso, **cada extracción es instantánea.** Nunca más configuración
 
 | Skill | Qué hace | Plataformas |
 |-------|----------|-------------|
-| [🎵 tiktok-scraper](tiktok-scraper/SKILL.md) | Búsqueda de videos TikTok, descubrimiento de creadores, colección de hashtags, perfiles de creador a CSV | TikTok |
+| [🎵 tiktok-collector](tiktok-collector/SKILL.md) | Búsqueda de videos TikTok, descubrimiento de creadores, colección de hashtags, perfiles de creador a CSV | TikTok |
 
 *Más plataformas próximamente (LinkedIn, Instagram, X/Twitter, YouTube…). Abre un issue para votar.*
 
@@ -100,21 +100,21 @@ Después de eso, **cada extracción es instantánea.** Nunca más configuración
 
 **Sin comandos que memorizar.** Abre tu asistente de IA (Claude Code / Codex / Cline…), y envía esto en el chat:
 
-> 💬 Instala el skill tiktok-scraper desde https://github.com/rosstzc/monsterget.com-skills
+> 💬 Instala el skill tiktok-collector desde https://github.com/rosstzc/monsterget.com-skills
 
 La IA clonará el repositorio, instalará el runtime y se configurará a sí misma.
 
 ### Lo que hace la IA
 
 1. Clona el repositorio
-2. Copia `tiktok-scraper/` → `~/.monsterget/skill/` — un **directorio de runtime compartido**
+2. Copia `tiktok-collector/` → `~/.monsterget/skill/` — un **directorio de runtime compartido**
 3. Añade un puntero de una línea a su propio archivo de instrucciones personalizadas
 
 Como el runtime vive en una ubicación fija (`~/.monsterget/skill/`), **todos tus clientes de IA lo comparten**. Instálalo una vez y úsalo desde Claude Code, Codex, Cursor, Cline — lo que tengas.
 
-**¿Prefieres hacerlo a mano?** Consulta [tiktok-scraper/INSTALL.md](tiktok-scraper/INSTALL.md) para los pasos manuales y las ubicaciones de puntero por cliente.
+**¿Prefieres hacerlo a mano?** Consulta [tiktok-collector/INSTALL.md](tiktok-collector/INSTALL.md) para los pasos manuales y las ubicaciones de puntero por cliente.
 
-**¿Sin acceso a shell** (solo chat web como ChatGPT)? Pega el contenido de [`tiktok-scraper/SKILL.md`](tiktok-scraper/SKILL.md) en tus instrucciones personalizadas — la IA te guiará manualmente.
+**¿Sin acceso a shell** (solo chat web como ChatGPT)? Pega el contenido de [`tiktok-collector/SKILL.md`](tiktok-collector/SKILL.md) en tus instrucciones personalizadas — la IA te guiará manualmente.
 
 ## 🧠 Arquitectura (lo que realmente sucede)
 

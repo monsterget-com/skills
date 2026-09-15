@@ -92,7 +92,7 @@ After that, **every scrape is instant.** No more setup. Ever.
 
 | Skill | What it does | Platforms |
 |-------|--------------|-----------|
-| [🎵 tiktok-scraper](tiktok-scraper/SKILL.md) | TikTok video search, creator discovery, hashtag collection, creator profile export to CSV | TikTok |
+| [🎵 tiktok-collector](tiktok-collector/SKILL.md) | TikTok video search, creator discovery, hashtag collection, creator profile export to CSV | TikTok |
 
 *More platforms coming (LinkedIn, Instagram, X/Twitter, YouTube…). Open an issue to vote.*
 
@@ -100,21 +100,21 @@ After that, **every scrape is instant.** No more setup. Ever.
 
 **No commands to memorize.** Open your AI assistant (Claude Code / Codex / Cursor / Cline…), and send this in the chat:
 
-> 💬 Install the tiktok-scraper skill from https://github.com/rosstzc/monsterget.com-skills
+> 💬 Install the tiktok-collector skill from https://github.com/rosstzc/monsterget.com-skills
 
 That's it. The AI clones the repo, installs the runtime, and wires itself up.
 
 ### What the AI does
 
 1. Clones this repository
-2. Copies `tiktok-scraper/` → `~/.monsterget/skill/` — a **shared runtime directory**
+2. Copies `tiktok-collector/` → `~/.monsterget/skill/` — a **shared runtime directory**
 3. Adds a one-line pointer to its own custom-instructions file
 
 Because the runtime lives in one shared location (`~/.monsterget/skill/`), **every AI client on your machine shares it**. Install once, use it from Claude Code, Codex, Cursor, Cline — whatever you have.
 
-**Prefer to do it by hand?** See [tiktok-scraper/INSTALL.md](tiktok-scraper/INSTALL.md) for manual steps and the per-client pointer locations.
+**Prefer to do it by hand?** See [tiktok-collector/INSTALL.md](tiktok-collector/INSTALL.md) for manual steps and the per-client pointer locations.
 
-**No shell access** (web-only chat like ChatGPT in a browser)? Paste the contents of [`tiktok-scraper/SKILL.md`](tiktok-scraper/SKILL.md) into your custom instructions — the AI will guide you through the steps manually.
+**No shell access** (web-only chat like ChatGPT in a browser)? Paste the contents of [`tiktok-collector/SKILL.md`](tiktok-collector/SKILL.md) into your custom instructions — the AI will guide you through the steps manually.
 
 ## 🧠 Architecture (what actually happens)
 

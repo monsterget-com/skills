@@ -6,13 +6,13 @@ This repository bundles AI-agent skills that collect web data (TikTok and more) 
 
 | Path | Skill |
 |------|-------|
-| [tiktok-scraper/](tiktok-scraper/) | TikTok video search, creator discovery, hashtag collection, creator profile export to CSV |
+| [tiktok-collector/](tiktok-collector/) | TikTok video search, creator discovery, hashtag collection, creator profile export to CSV |
 
 ## Installing a skill
 
 Say in your chat:
 
-> Install the tiktok-scraper skill from https://github.com/rosstzc/monsterget.com-skills
+> Install the tiktok-collector skill from https://github.com/rosstzc/monsterget.com-skills
 
 ### Self-install contract (for the agent receiving that instruction)
 
@@ -20,7 +20,7 @@ Say in your chat:
 2. Copy the skill contents into the shared runtime directory (the trailing `/.` merges files, so a re-install overwrites instead of nesting):
 
    ```bash
-   mkdir -p ~/.monsterget/skill && cp -r tiktok-scraper/. ~/.monsterget/skill/
+   mkdir -p ~/.monsterget/skill && cp -r tiktok-collector/. ~/.monsterget/skill/
    ```
 
 3. Add a one-line pointer in your own custom-instructions / rules file so you load it in future sessions:

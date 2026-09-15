@@ -1,4 +1,4 @@
-# TikTok Scraper (MonsterGet)
+# TikTok Collector (MonsterGet)
 
 Collect TikTok data (video search, creator search, hashtag search, creator videos, creator profiles) as CSV, driven by an AI agent, scraped through the user's real logged-in browser via the MonsterGet browser extension (anti-ban). Works in any AI client that can run shell commands.
 

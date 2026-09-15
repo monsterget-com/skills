@@ -6,3 +6,6 @@ Thumbs.db
 
 # Sync bookkeeping
 .sync-state.json
+
+# Local docs (personal research, not for git)
+local/
