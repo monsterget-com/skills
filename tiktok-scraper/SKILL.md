@@ -227,9 +227,10 @@ NEW_API_VER="$(printf '%s' "$SCRAPERS" | sed -n 's/.*"version"[[:space:]]*:[[:sp
 if [ -n "$NEW_API_VER" ]; then
   LOCAL_VER_FILE="$HOME/.monsterget/version.json"
   mkdir -p "$(dirname "$LOCAL_VER_FILE")"
-  [ -f "$LOCAL_VER_FILE" ] || echo '{"skill_version":"0","extension_version":"unknown"}' > "$LOCAL_VER_FILE"
-  TMP="$(mktemp)"
-  jq --arg v "$NEW_API_VER" '.scrapers_api = $v' "$LOCAL_VER_FILE" > "$TMP" && mv "$TMP" "$LOCAL_VER_FILE" 2>/dev/null || true
+  [ -f "$LOCAL_VER_FILE" ] || printf '{\n  "skill_version": "0",\n  "extension_version": "unknown",\n  "scrapers_api": "0"\n}\n' > "$LOCAL_VER_FILE"
+  # Portable in-place update (no jq dependency) — awk is always present
+  awk -v v="$NEW_API_VER" '{ if ($0 ~ /"scrapers_api":/) sub(/"scrapers_api":[[:space:]]*"[^"]*"/, "\"scrapers_api\": \"" v "\""); print }' \
+    "$LOCAL_VER_FILE" > "$LOCAL_VER_FILE.tmp" && mv "$LOCAL_VER_FILE.tmp" "$LOCAL_VER_FILE"
   SCRAPERS_API_SEEN="$NEW_API_VER"
 fi
 ```
