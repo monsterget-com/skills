@@ -256,7 +256,7 @@ cat ~/.monsterget/state.json
 
 **Say the following, fully translated into the user's language** (never mix languages, never show this English original to the user):
 
-> **I will open {browser} (with MonsterGet extension installed, install guide: https://monsterget.com/install), visit monsterget.com (must be logged in), and scrape tiktok.com (must be logged in) for: {user's request}.**
+> **I will open {browser} (MonsterGet extension required — install guide: https://monsterget.com/install), visit monsterget.com (must be logged in), and scrape tiktok.com (must be logged in) for: {user's request}.**
 
 Replace `{browser}` with the value from `browser_pref` ("Edge" or "Chrome"), and `{user's request}` with the specific task the user asked for (e.g. "50 videos about 'mike tyson'").
 
@@ -467,7 +467,7 @@ The limit counts **running tasks**, not open windows:
 英文原文（规范版，正文 Step 1 给出），以下为其中文翻译：
 
 ```
-我将打开 {浏览器}（需已安装 MonsterGet 扩展，安装指引：https://monsterget.com/install），
+我将打开 {浏览器}（需安装 MonsterGet 扩展，安装指引：https://monsterget.com/install），
 访问 monsterget.com（需已登录），
 抓取 tiktok.com（需已登录）的指定内容：{用户的具体请求}。
 
