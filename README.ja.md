@@ -7,6 +7,8 @@
 [![永久無料](https://img.shields.io/badge/🆓-永久無料-22bb33?style=flat-square)](https://monsterget.com)
 [![AI ネイティブ](https://img.shields.io/badge/🤖-AI%20%E3%83%8D%E3%82%A4%E3%83%86%E3%82%A3%E3%83%96-2196F3?style=flat-square)](https://monsterget.com)
 [![1000万件](https://img.shields.io/badge/📦-%E7%99%BB%E9%8C%B2%E3%81%A71000%E4%B8%87%E4%BB%B6-FF9800?style=flat-square)](https://monsterget.com)
+[![Install via npx skills](https://img.shields.io/badge/🧩-Install%20via%20skills.sh-000?style=flat-square)](https://skills.sh)
+[![Install via Claude Code](https://img.shields.io/badge/⚡-Install%20via%20Claude%20Code-6B46C1?style=flat-square)](https://github.com/monsterget-com/skills)
 
 ---
 

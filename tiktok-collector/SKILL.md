@@ -467,7 +467,7 @@ The limit counts **running tasks**, not open windows:
 英文原文（规范版，正文 Step 1 给出），以下为其中文翻译：
 
 ```
-我将打开 {浏览器}（已安装 MonsterGet 扩展，安装指引：https://monsterget.com/install），
+我将打开 {浏览器}（需已安装 MonsterGet 扩展，安装指引：https://monsterget.com/install），
 访问 monsterget.com（需已登录），
 抓取 tiktok.com（需已登录）的指定内容：{用户的具体请求}。
 
