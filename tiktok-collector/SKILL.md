@@ -154,7 +154,7 @@ Tell the user (naming the browser they chose):
 
 That is it. No detection scripts, no verification loops. The user guarantees the conditions.
 
-> ⚠️ **One-browser rule**: the extension, the monsterget.com login, and the TikTok login must all be in the **same browser** (the one the user chose). If they later switch browsers, re-run Steps I–III.
+> ⚠️ **One-browser rule**: the extension, the [monsterget.com](https://monsterget.com) login, and the TikTok login must all be in the **same browser** (the one the user chose). If they later switch browsers, re-run Steps I–III.
 
 ## Scrape types — auto-discovered once per session
 
@@ -254,19 +254,15 @@ At the **start of every scrape task**, before running any command, read the conf
 cat ~/.monsterget/state.json
 ```
 
-**Say the following, fully translated into the user's language** (never mix languages, never show this English original to the user):
+**Say the following block verbatim, translated entirely into the user's language** (never mix languages, never show this English original to the user):
 
-> **I will open {browser} (MonsterGet extension required — install guide: https://monsterget.com/install), visit monsterget.com (must be logged in), and scrape tiktok.com (must be logged in) for: {user's request}.**
-
-Replace `{browser}` with the value from `browser_pref` ("Edge" or "Chrome"), and `{user's request}` with the specific task the user asked for (e.g. "50 videos about 'mike tyson'").
-
-**This sentence is mandatory on every single scrape.** It is the user's only confirmation that the AI is about to open their browser. Do not skip it, shorten it, or merge it into a "processing…" status line.
-
-**Append the window-visibility hint to the same reminder** (one message, not a separate prompt), fully translated into the user's language:
-
+> **I will open {browser} (MonsterGet extension required — install guide: https://monsterget.com/install), visit https://monsterget.com (must be logged in), and scrape https://tiktok.com (must be logged in) for: {user's request}.**
+>
 > **Important: please shrink the current software window and keep the scraper window partially visible. The browser throttles rendering when the scraper window is fully occluded, which stalls content loading and causes the scrape to fail.**
 
-This hint goes in every reminder, exactly once, in the user's language.
+- Replace `{browser}` with `browser_pref` value ("Edge" or "Chrome"), `{user's request}` with the specific task.
+- **The entire block is one message.** Translate it as a whole — every line, including the install guide URL — into the user's language. Do not split, reorder, or omit any part.
+- **This reminder is mandatory on every single scrape.** It is the user's only confirmation that the AI is about to open their browser. Do not skip it, shorten it, or merge it into a "processing…" status line.
 
 **Never run `run-scrape.sh` until the reminder has been printed.** Proceed to Step 2 without waiting for a reply — the reminder is informational, not a question.
 
@@ -335,10 +331,10 @@ If the scrape fails (status `not_found`, `timeout`, or the browser never opened)
 > ① **安装了 MonsterGet 扩展吗？**
 >    → 打开 https://monsterget.com/install 安装
 >
-> ② **在安装了扩展的那个浏览器登录了 monsterget.com 吗？**
+> ② **在安装了扩展的那个浏览器登录了 [monsterget.com](https://monsterget.com) 吗？**
 >    → 打开 https://monsterget.com 登录
 >
-> ③ **在同一个浏览器登录了 tiktok.com 且能正常访问吗？**
+> ③ **在同一个浏览器登录了 [tiktok.com](https://tiktok.com) 且能正常访问吗？**
 >    → 打开 https://www.tiktok.com 确认
 >
 > 全部确认后告诉我"好了"，我重新抓取。
@@ -385,7 +381,7 @@ Key rules:
 |---------|-------|-----|
 | `not_found` / `timeout` | Extension missing, not logged in, or browser launch failed | Run the 3-point user checklist (Step 3) |
 | `platform_reachable: false` / curl returns nothing | Platform not reachable | Confirm backend running (local) or site is up (production) |
-| page shows "please log in" | Not logged into monsterget.com | Log in at https://monsterget.com, retry |
+| page shows "please log in" | Not logged into [monsterget.com](https://monsterget.com) | Log in at [monsterget.com](https://monsterget.com), retry |
 | `already_downloaded` | Already fetched once | Run the scrape again (new taskId) |
 | `409 not_ready` | Data not ready yet | Keep polling |
 | `409 buffer_unavailable` | Buffer cleared by TTL race | Retry a few seconds later |
@@ -462,20 +458,6 @@ The limit counts **running tasks**, not open windows:
 都登录好了就可以开始抓取了。我会在每次抓取前提醒你确认条件。
 ```
 
-### Pre-task reminder (中文)
-
-英文原文（规范版，正文 Step 1 给出），以下为其中文翻译：
-
-```
-我将打开 {浏览器}（需安装 MonsterGet 扩展，安装指引：https://monsterget.com/install），
-访问 monsterget.com（需已登录），
-抓取 tiktok.com（需已登录）的指定内容：{用户的具体请求}。
-
-重要：请缩小当前软件窗口，保持爬虫窗口部分可见（完全遮挡爬虫窗口会影响内容加载，导致抓取失败）。
-```
-
-`{浏览器}` 替换成 `browser_pref` 的值（edge 译成"Edge"，chrome 译成"Chrome"）。
-
 ### Failure checklist (中文)
 
 ```
@@ -484,10 +466,10 @@ The limit counts **running tasks**, not open windows:
 ① 安装了 MonsterGet 扩展吗？
    → 打开 https://monsterget.com/install 安装
 
-② 在安装了扩展的那个浏览器登录了 monsterget.com 吗？
+② 在安装了扩展的那个浏览器登录了 [monsterget.com](https://monsterget.com) 吗？
    → 打开 https://monsterget.com 登录
 
-③ 在同一个浏览器登录了 tiktok.com 且能正常访问吗？
+③ 在同一个浏览器登录了 [tiktok.com](https://tiktok.com) 且能正常访问吗？
    → 打开 https://www.tiktok.com 确认
 
 全部确认后告诉我"好了"，我重新抓取。
