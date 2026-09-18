@@ -94,7 +94,7 @@ MonsterGet はゲームを変えます：**収集はあなた自身のブラウ�
 
 | Skill | 機能 | 対応 |
 |-------|------|------|
-| [🎵 tiktok-collector](tiktok-collector/SKILL.md) | TikTok 動画検索、クリエイター発掘、ハッシュタグ収集、クリエイタープロフィールの CSV 出力 | TikTok |
+| [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | TikTok 動画検索、クリエイター発掘、ハッシュタグ収集、クリエイタープロフィールの CSV 出力 | TikTok |
 
 *対応プラットフォーム拡大予定（LinkedIn、Instagram、X/Twitter、YouTube…）。issue で投票してください。*
 
@@ -109,14 +109,14 @@ AI が自動でリポジトリをクローンし、ランタイムをインス�
 ### AI が行うこと
 
 1. リポジトリをクローン
-2. `tiktok-collector/` を `~/.monsterget/skill/` にコピー（**共有ランタイムディレクトリ**）
+2. `skills/tiktok-collector/` を `~/.monsterget/skill/` にコピー（**共有ランタイムディレクトリ**）
 3. 自分のカスタム指示 / rules ファイルに一行ポインタを追加
 
 ランタイムが一箇所（`~/.monsterget/skill/`）に置かれるため、**あなたのすべての AI クライアントがそれを共有します**。一度インストールすれば、Claude Code / Codex / Cursor / Cline のどれからでも使えます。
 
-**手動でインストールしたい？** [tiktok-collector/INSTALL.md](tiktok-collector/INSTALL.md) を参照してください（手動手順とクライアント別のポインタ位置）。
+**手動でインストールしたい？** [skills/tiktok-collector/INSTALL.md](skills/tiktok-collector/INSTALL.md) を参照してください（手動手順とクライアント別のポインタ位置）。
 
-**シェルを使えない環境**（ブラウザ版 ChatGPT など）？ [`tiktok-collector/SKILL.md`](tiktok-collector/SKILL.md) の内容をカスタム指示に貼り付け、AI の案内に従ってください。
+**シェルを使えない環境**（ブラウザ版 ChatGPT など）？ [`skills/tiktok-collector/SKILL.md`](skills/tiktok-collector/SKILL.md) の内容をカスタム指示に貼り付け、AI の案内に従ってください。
 
 ## 🧠 アーキテクチャ（実際に起きていること）
 

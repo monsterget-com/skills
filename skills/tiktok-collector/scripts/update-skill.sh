@@ -19,7 +19,7 @@ SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCAL_VERSION_FILE="$HOME/.monsterget/version.json"
 REPO="monsterget-com/skills"
 BRANCH="main"
-REMOTE_URL="https://raw.githubusercontent.com/$REPO/$BRANCH/tiktok-collector/VERSION.json"
+REMOTE_URL="https://raw.githubusercontent.com/$REPO/$BRANCH/skills/tiktok-collector/VERSION.json"
 
 # ---- helpers ----
 
@@ -90,7 +90,7 @@ if curl -sL --max-time 120 \
   -o "$TMP_DIR/repo.tar.gz" &&
   tar -xzf "$TMP_DIR/repo.tar.gz" -C "$TMP_DIR" 2>/dev/null; then
 
-  SRC="$TMP_DIR/skills-$BRANCH/tiktok-collector"
+  SRC="$TMP_DIR/skills-$BRANCH/skills/tiktok-collector"
   if [ -f "$SRC/VERSION.json" ]; then
     # Verify the staged files look valid before overwriting
     STAGED_SKILL="$(json_val "skill" < "$SRC/VERSION.json")"

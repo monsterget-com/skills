@@ -11,7 +11,7 @@ The AI agent will clone, install, and configure itself. If it asks you to confir
 ## What the AI does (for your verification)
 
 1. `git clone` this repository
-2. Copies `tiktok-collector/` → `~/.monsterget/skill/`
+2. Copies `skills/tiktok-collector/` → `~/.monsterget/skill/`
 3. Adds a one-line pointer to your client's custom instructions/rules file
 
 That's it. The actual scripts stay at `~/.monsterget/skill/scripts/` so all your AI clients share the same runtime.
@@ -25,7 +25,7 @@ That's it. The actual scripts stay at `~/.monsterget/skill/scripts/` so all your
 # Step 1 — clone and copy the runtime (once, shared by all clients)
 git clone https://github.com/monsterget-com/skills /tmp/mgs
 mkdir -p ~/.monsterget/skill
-cp -r /tmp/mgs/tiktok-collector/. ~/.monsterget/skill/
+cp -r /tmp/mgs/skills/tiktok-collector/. ~/.monsterget/skill/
 
 # Step 2 — point your client at it (pick one)
 # Claude Code (native, no pointer needed)

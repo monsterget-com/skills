@@ -9,3 +9,6 @@ Thumbs.db
 
 # Local docs (personal research, not for git)
 local/
+
+# ClawHub uploads (local scraping artifacts, not for git)
+clawhub-upload/
