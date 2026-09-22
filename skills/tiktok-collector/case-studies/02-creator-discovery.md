@@ -9,8 +9,21 @@
 
 ## ⚙️ 前置准备
 
-本案例使用了 MonsterGet + tiktok-collector skill。
-还没有安装的读者 → [2 分钟安装指南](../INSTALL.md)
+**第一步：在你的 AI 客户端里安装 skill（不是网页版）**
+
+打开你常用的、支持本地 skill 的 AI 客户端，例如：Codex、Claude Code、Cursor、腾讯 WorkBuddy、DeepSeek、Kimi
+
+> 注意：这里说的是**桌面客户端 / 本地 IDE**，不是浏览器里的网页版对话窗口。网页版通常无法安装 skill。
+
+在对话框里发送：
+
+> 安装 skill tiktok-collector，https://github.com/monsterget-com/skills
+
+**第二步：跟着 skill 的提示完成设置**
+
+skill 安装后会引导你在浏览器里完成 3 件事——安装 MonsterGet 扩展、登录 MonsterGet、登录 TikTok。跟着提示点几下就行，不需要找文件夹或密钥。
+
+完成后即可开始抓取。每次抓取时浏览器会自动打开 MonsterGet 执行任务，保持窗口可见即可。
 
 ## 💬 完整操作过程
 
