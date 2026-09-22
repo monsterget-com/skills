@@ -80,6 +80,18 @@ No tricks. No "free tier" that expires after 14 days. 10 million entries are rea
 > *"Setup took 2 minutes. I've scraped 2 million entries. Still on the free tier. This feels illegal but apparently it's fine."*
 > — **Growth hacker**
 
+## 📚 Real Case Studies — Step-by-Step, with Real Data
+
+> Every case study is an actual scraping session I ran myself. You get the exact dialog I used, the raw CSV output, and the analysis that came out of it.
+
+| # | Topic | What You'll Learn |
+|---|-------|-------------------|
+| 1 | [Competitor Analysis](skills/tiktok-collector/case-studies/01-competitor-analysis.md) | Scrape a brand's last 100 videos, find their best-performing content categories |
+| 2 | [Creator Discovery: Two-Step Funnel](skills/tiktok-collector/case-studies/02-creator-discovery.md) | Search content first → extract creators → deep-dive each one's 50 videos + engagement rates |
+| 3 | [Follower Count Is a Lie](skills/tiktok-collector/case-studies/03-fake-follower-exposed.md) | Two creators side by side — 144k followers vs 73k, but the smaller one has 74× more real reach |
+
+[📂 View All Case Studies →](skills/tiktok-collector/case-studies/)
+
 ## ⏱️ First-time Setup — 2 Minutes, One-Time
 
 | Step | What to do |

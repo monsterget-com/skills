@@ -80,6 +80,18 @@ AI 负责全部编排：
 > *"配置花了 2 分钟。我已经采集了 200 万条。还在免费用量内。这感觉不太合法，但显然没问题。"*
 > —— **增长黑客**
 
+## 📚 真实案例 —— 完整步骤 + 真实数据
+
+> 所有案例都是作者亲自操作的完整记录。每个案例包含：对 AI 说的原话、AI 的完整反馈、实际 CSV 数据预览、分析过程和最终结论。
+
+| # | 主题 | 你能学到什么 |
+|---|------|-------------|
+| 1 | [竞品分析](skills/tiktok-collector/case-studies/01-competitor-analysis.md) | 抓取一个品牌最近的 100 条视频，分析出它表现最好的内容类型 |
+| 2 | [达人挖掘：两步漏斗法](skills/tiktok-collector/case-studies/02-creator-discovery.md) | 先搜内容→提取创作者→逐个深挖 50 条视频+互动率 |
+| 3 | [粉丝数是最大的谎言](skills/tiktok-collector/case-studies/03-fake-follower-exposed.md) | 14.4 万粉 vs 7.3 万粉，粉丝少一倍的达人真实触达反而高 74 倍 |
+
+[📂 查看全部案例 →](skills/tiktok-collector/case-studies/)
+
 ## ⏱️ 首次配置 —— 2 分钟，一次性
 
 | 步骤 | 做什么 |
