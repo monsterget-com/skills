@@ -36,8 +36,7 @@ skill 安装后会引导你在浏览器里完成 3 件事——安装 MonsterGet
 
 *（约 40 秒后）*
 
-🤖 AI：✅ 抓取完成！共 **100 条视频**。文件已保存到：
-`C:/Users/admin/Downloads/theordinary-100-20260920_tiktok_author_a49a1a-monsterget.com.csv`
+🤖 AI：✅ 抓取完成！共 **100 条视频**，保存为 `theordinary-100-20260920_tiktok_author_a49a1a-monsterget.com.csv`
 
 ### 第 3 步：拿到的数据
 
@@ -150,7 +149,3 @@ skill 安装后会引导你在浏览器里完成 3 件事——安装 MonsterGet
 
 3. **互动率比播放量更能说明粉丝粘性**——这条 CSV 里播放最低的视频互动率反而更高（3.76% vs 爆款的 3.26%），说明忠诚用户会第一时间支持新内容。如果你看到一条新视频点赞/播放比合理，就说明方向是对的。
 
-## 🔗 相关链接
-
-- [Skill 说明](../SKILL.md)
-- [安装指南](../INSTALL.md)
