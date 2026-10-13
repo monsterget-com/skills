@@ -11,39 +11,47 @@ The AI agent will clone, install, and configure itself. If it asks you to confir
 ## What the AI does (for your verification)
 
 1. `git clone` this repository
-2. Copies `skills/tiktok-collector/` → `~/.monsterget/skill/`
+2. Copies `skills/tiktok-collector/` → `~/.monsterget/skills/tiktok-collector/`
 3. Adds a one-line pointer to your client's custom instructions/rules file
 
-That's it. The actual scripts stay at `~/.monsterget/skill/scripts/` so all your AI clients share the same runtime.
+That's it. The actual scripts stay at `~/.monsterget/skills/tiktok-collector/scripts/` so all your AI clients share the same runtime.
+
+> **Multi-skill layout**: skills now live side-by-side under `~/.monsterget/skills/<skill>/` (tiktok-collector, linkedin-collector, …). Each skill is self-contained; the shared `~/.monsterget/state.json` and `~/.monsterget/version.json` carry the browser choice, download dir, and scrapers API version.
+
+> **Migrating from the old single-skill layout** (`~/.monsterget/skill/`)? Move it:
+> ```bash
+> mkdir -p ~/.monsterget/skills && mv ~/.monsterget/skill ~/.monsterget/skills/tiktok-collector
+> ```
+> Then update the pointer in your rules file. Both skills' runtimes coexist without conflict.
 
 > **Note**: If you use Claude Code natively, you can also symlink directly:
-> `ln -s ~/.monsterget/skill ~/.claude/skills/tiktok-collector`
+> `ln -s ~/.monsterget/skills/tiktok-collector ~/.claude/skills/tiktok-collector`
 
 ## Manual install
 
 ```bash
 # Step 1 — clone and copy the runtime (once, shared by all clients)
 git clone https://github.com/monsterget-com/skills /tmp/mgs
-mkdir -p ~/.monsterget/skill
-cp -r /tmp/mgs/skills/tiktok-collector/. ~/.monsterget/skill/
+mkdir -p ~/.monsterget/skills/tiktok-collector
+cp -r /tmp/mgs/skills/tiktok-collector/. ~/.monsterget/skills/tiktok-collector/
 
 # Step 2 — point your client at it (pick one)
 # Claude Code (native, no pointer needed)
-cp -r ~/.monsterget/skill ~/.claude/skills/tiktok-collector
+cp -r ~/.monsterget/skills/tiktok-collector ~/.claude/skills/tiktok-collector
 
 # Codex CLI / Cursor / Zed / Windsurf / Copilot / Aider / Gemini CLI
-echo 'For TikTok data, read ~/.monsterget/skill/SKILL.md' >> AGENTS.md
+echo 'For TikTok data, read ~/.monsterget/skills/tiktok-collector/SKILL.md' >> AGENTS.md
 
 # Cline
-echo 'For TikTok data, read ~/.monsterget/skill/SKILL.md' >> .clinerules/
+echo 'For TikTok data, read ~/.monsterget/skills/tiktok-collector/SKILL.md' >> .clinerules/
 
 # Roo Code
-echo 'For TikTok data, read ~/.monsterget/skill/SKILL.md' >> .roo/rules/tiktok-collector.md
+echo 'For TikTok data, read ~/.monsterget/skills/tiktok-collector/SKILL.md' >> .roo/rules/tiktok-collector.md
 
 # Kilo Code
-echo 'For TikTok data, read ~/.monsterget/skill/SKILL.md' >> .kilocode/rules/tiktok-collector.md
+echo 'For TikTok data, read ~/.monsterget/skills/tiktok-collector/SKILL.md' >> .kilocode/rules/tiktok-collector.md
 
-# Any other client — paste the content of ~/.monsterget/skill/SKILL.md into
+# Any other client — paste the content of ~/.monsterget/skills/tiktok-collector/SKILL.md into
 # your client's custom instructions / rules textarea.
 ```
 
@@ -51,7 +59,7 @@ echo 'For TikTok data, read ~/.monsterget/skill/SKILL.md' >> .kilocode/rules/tik
 
 ```bash
 # Quick check that the SKILL.md and scripts are in place
-ls ~/.monsterget/skill/SKILL.md && echo "installed"
+ls ~/.monsterget/skills/tiktok-collector/SKILL.md && echo "installed"
 ```
 (No automated checks — the AI will guide you manually.)
 

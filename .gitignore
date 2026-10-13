@@ -12,3 +12,10 @@ local/
 
 # ClawHub uploads (local scraping artifacts, not for git)
 clawhub-upload/
+
+# npx skills install artifacts (user-only, not for the public repo)
+.agents/
+.claude/
+agent/
+skills-lock.json
+skills/monsterget-tiktok-collector/

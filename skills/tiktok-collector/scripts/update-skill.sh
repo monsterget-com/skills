@@ -105,15 +105,26 @@ if curl -sL --max-time 120 \
 fi
 
 # ---- persist local version record ----
+# ~/.monsterget/version.json is SHARED across skills (linkedin-collector's
+# update-skill.sh updates its fields in place too). Update ONLY this skill's
+# fields in place — never rewrite the whole file, which would clobber the
+# other skill's state. skill_version is THIS skill's version (tiktok is the
+# original owner of this key); other skills must not touch it.
 
 mkdir -p "$HOME/.monsterget"
-cat > "$LOCAL_VERSION_FILE" <<EOF
-{
-  "skill_version": "$REMOTE_SKILL",
-  "extension_version": "$LOCAL_EXT",
-  "scrapers_api": "$LOCAL_API"
-}
-EOF
+if [ ! -f "$LOCAL_VERSION_FILE" ]; then
+  # Bootstrap the shared file only if it does not exist yet
+  printf '{\n  "skill_version": "%s",\n  "extension_version": "unknown",\n  "scrapers_api": "%s"\n}\n' \
+    "$REMOTE_SKILL" "$REMOTE_API" > "$LOCAL_VERSION_FILE"
+else
+  # Portable in-place update of skill_version + scrapers_api (no jq dependency)
+  awk -v sv="$REMOTE_SKILL" -v api="$REMOTE_API" '
+    {
+      if ($0 ~ /"skill_version":/)  sub(/"skill_version":[[:space:]]*"[^"]*"/,  "\"skill_version\": \"" sv "\"")
+      if ($0 ~ /"scrapers_api":/)   sub(/"scrapers_api":[[:space:]]*"[^"]*"/,   "\"scrapers_api\": \"" api "\"")
+      print
+    }' "$LOCAL_VERSION_FILE" > "$LOCAL_VERSION_FILE.tmp" && mv "$LOCAL_VERSION_FILE.tmp" "$LOCAL_VERSION_FILE"
+fi
 
 # ---- output ----
 
@@ -123,13 +134,5 @@ if [ "$UPDATED" = true ]; then
 else
   printf '{"updated":false,"current_version":"%s","scrapers_api":"%s","extension_recommended":"%s","extension_install_url":"%s","error":"download failed — skill not updated; network may be unavailable"}\n' \
     "$LOCAL_SKILL" "$LOCAL_API" "$LOCAL_EXT" "$REMOTE_INSTALL_URL"
-  # Ensure the local version file still reflects actual disk state (the old skill is still there)
-  cat > "$LOCAL_VERSION_FILE" <<EOF
-{
-  "skill_version": "$LOCAL_SKILL",
-  "extension_version": "$LOCAL_EXT",
-  "scrapers_api": "$LOCAL_API"
-}
-EOF
 fi
 exit 0

@@ -1,6 +1,6 @@
 # 🛡️ MonsterGet Skills — 为 AI 打造的反封禁网页采集
 
-> **告别封号。通过你自己的真实浏览器采集 TikTok —— 用你已登录的会话。AI 全自动，零配置，永久免费。**
+> **告别封号。通过你自己的真实浏览器采集 TikTok 和 LinkedIn —— 用你已登录的会话。AI 全自动，零配置，永久免费。**
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md) · [Español](README.es.md) · [Português](README.pt.md)
 
@@ -14,7 +14,7 @@
 
 ## ✨ 这是什么？
 
-**MonsterGet Skills** 让任何 AI 助手变身 TikTok 数据引擎 —— 而且不会让你的账号被封。
+**MonsterGet Skills** 让任何 AI 助手变身 TikTok 和 LinkedIn 数据引擎 —— 而且不会让你的账号被封。
 
 网页采集有一个公开的秘密：**服务端采集器会被封。** TikTok、Instagram、LinkedIn —— 它们都在对抗无头浏览器、机房 IP 和代理池。你加固，它们封得更狠。这是一场你注定输的军备竞赛。
 
@@ -35,6 +35,8 @@ MonsterGet 换了个玩法：**采集发生在你自己的浏览器里**，用�
 | 🏷️ **标签情报** | 输入一个标签 → 该标签下所有视频的 CSV |
 | 👤 **账号审核** | 获取某创作者发布的全部视频 → 完整数据 |
 | 📊 **批量拉取主页** | 一次 50+ 个账号 → 一个 CSV，聚合统计 |
+| 💼 **LinkedIn 档案** | 档案头部 + 完整 About 简介 → 每个档案一行 |
+| 🧑‍💼 **LinkedIn 相似用户** | "为你推荐更多用户" → 姓名、头衔、共同好友 |
 
 所有结果都是干净的 CSV 文件 —— Excel 打开、导入分析工具，或喂回给你的 AI。
 
@@ -107,8 +109,9 @@ AI 负责全部编排：
 | Skill | 功能 | 平台 |
 |-------|------|------|
 | [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | TikTok 视频搜索、达人挖掘、标签采集、达人资料导出为 CSV | TikTok |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn 档案头部 + About 导出、相似用户推荐、批量档案拉取为 CSV | LinkedIn |
 
-*更多平台即将支持（LinkedIn、Instagram、X/Twitter、YouTube…）。开 issue 投票。*
+*更多平台即将支持（Instagram、X/Twitter、YouTube…）。开 issue 投票。*
 
 ## 🔧 安装方法
 
@@ -116,26 +119,34 @@ AI 负责全部编排：
 
 > 💬 安装 skill tiktok-collector，https://github.com/monsterget-com/skills
 
+> 💬 安装 skill linkedin-collector，https://github.com/monsterget-com/skills
+
 AI 会自动克隆仓库，安装运行时，并配置自身。
 
 ### AI 具体做的事
 
 1. 克隆本仓库
-2. 复制 `skills/tiktok-collector/` → `~/.monsterget/skill/` —— **共享运行时目录**
+2. 复制 `skills/<skill>/` → `~/.monsterget/skills/<skill>/` —— **共享运行时目录**（每个 skill 一个文件夹，平铺共存）
 3. 在自己对应的 rules 文件中添加一行指针
 
-因为运行时放在一个固定位置（`~/.monsterget/skill/`），**你所有 AI 客户端共享它**。安装一次，Claude Code、Codex、Cursor、Cline 都能用。
+因为运行时放在一个固定位置（`~/.monsterget/skills/`），**你所有 AI 客户端共享它**。安装一次，Claude Code、Codex、Cursor、Cline 都能用。
 
-**想手动安装？** 见 [skills/tiktok-collector/INSTALL.md](skills/tiktok-collector/INSTALL.md) —— 有手动步骤和每个客户端的指针位置。
+**想手动安装？** 见 [skills/tiktok-collector/INSTALL.md](skills/tiktok-collector/INSTALL.md) 和 [skills/linkedin-collector/INSTALL.md](skills/linkedin-collector/INSTALL.md) —— 有手动步骤和每个客户端的指针位置。
 
-**没有 shell 权限**（比如纯网页版 ChatGPT）？把 [`skills/tiktok-collector/SKILL.md`](skills/tiktok-collector/SKILL.md) 的内容粘贴到你的自定义指令中，AI 会文字指引你完成每一步。
+**没有 shell 权限**（比如纯网页版 ChatGPT）？把 [`skills/tiktok-collector/SKILL.md`](skills/tiktok-collector/SKILL.md) 或 [`skills/linkedin-collector/SKILL.md`](skills/linkedin-collector/SKILL.md) 的内容粘贴到你的自定义指令中，AI 会文字指引你完成每一步。
+
+> **从旧的单 skill 目录迁移**（`~/.monsterget/skill/`）？只需一次：
+> ```bash
+> mkdir -p ~/.monsterget/skills && mv ~/.monsterget/skill ~/.monsterget/skills/tiktok-collector
+> ```
+> 然后更新 rules 里的指针。tiktok 与 linkedin 运行时从此平铺共存、互不冲突。
 
 ## 🧠 架构（实际发生了什么）
 
 ```
 AI ──▶ 生成 taskId + 打开浏览器 URL
          │
-你的浏览器 ──▶ MonsterGet 扩展在你的 TikTok 标签页中执行采集
+你的浏览器 ──▶ MonsterGet 扩展在你的 TikTok/LinkedIn 标签页中执行采集
                    │
                 数据行流入服务器缓冲区 ──▶ AI 轮询并下载 CSV
 ```

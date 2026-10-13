@@ -55,7 +55,7 @@ The user needs 3 things, all in the **same browser** (the one they chose). The A
 **c. Save the browser choice** — whatever the user said, save it directly:
 
 ```bash
-bash ~/.monsterget/skill/scripts/choose-browser.sh edge
+bash ~/.monsterget/skills/tiktok-collector/scripts/choose-browser.sh edge
 # (or chrome — user said Chrome)
 # → {"ok":true,"browser":"edge",...}
 ```
@@ -76,10 +76,10 @@ If anything is missing later (scrape fails), use the failure checklist in SKILL.
 
 ## Scripts
 
-All scripts live at `~/.monsterget/skill/scripts/`. Resolve once at the start of the session and **exit immediately if not found** — don't proceed without them.
+All scripts live at `~/.monsterget/skills/tiktok-collector/scripts/`. Resolve once at the start of the session and **exit immediately if not found** — don't proceed without them.
 
 ```bash
-SCRIPTS="$HOME/.monsterget/skill/scripts"
+SCRIPTS="$HOME/.monsterget/skills/tiktok-collector/scripts"
 if [ ! -d "$SCRIPTS" ]; then
   echo "Skill not installed — run the install instruction first." >&2
   exit 1
@@ -104,7 +104,7 @@ During installation the user verbally confirms which browser has the MonsterGet 
 ### Scrape
 
 ```bash
-bash ~/.monsterget/skill/scripts/run-scrape.sh <pagePath> <param> <value> [count]
+bash ~/.monsterget/skills/tiktok-collector/scripts/run-scrape.sh <pagePath> <param> <value> [count]
 ```
 
 | Intent | `pagePath` | `param` | `value` example |

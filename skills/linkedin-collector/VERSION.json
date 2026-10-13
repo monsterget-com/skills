@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "skill": "1.0.0",
+  "scrapers_api": "2",
+  "extension_recommended": "1.2.2",
+  "extension_install_url": "https://monsterget.com/install",
+  "changelog": "v1.0.0: 首个版本 — LinkedIn 个人档案抓取（linkedin_profile_main）与相似用户推荐（linkedin_more_profiles），复用 agent 通道与父子任务串联；需要后端 scrapers_api v2。"
+}

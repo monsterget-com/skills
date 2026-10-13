@@ -1,6 +1,6 @@
 # 🛡️ MonsterGet Skills — Anti-Ban Web Scraping for AI
 
-> **Stop getting blocked. Scrape TikTok through your real browser — your existing logged-in session. AI-automated, zero-setup, permanently free.**
+> **Stop getting blocked. Scrape TikTok & LinkedIn through your real browser — your existing logged-in session. AI-automated, zero-setup, permanently free.**
 
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Português](README.pt.md)
 
@@ -14,7 +14,7 @@
 
 ## ✨ What is it?
 
-**MonsterGet Skills** turn any AI assistant into a TikTok data powerhouse — without your accounts getting banned.
+**MonsterGet Skills** turn any AI assistant into a TikTok & LinkedIn data powerhouse — without your accounts getting banned.
 
 Here's the dirty secret of web scraping: **server-side scrapers get blocked.** TikTok, Instagram, LinkedIn — they all fight headless browsers, datacenter IPs, and proxy pools. You fight back, they block harder. It's an arms race you lose.
 
@@ -35,6 +35,8 @@ MonsterGet flips the game: **the scrape runs inside your own browser**, in your 
 | 🏷️ **Hashtag intelligence** | Enter a hashtag → CSV of every video under it |
 | 👤 **Creator audit** | Get every video a specific creator posted → full analytics |
 | 📊 **Bulk profile pull** | 50+ usernames at once → one CSV, aggregated |
+| 💼 **LinkedIn profiles** | Profile header + full About text → one row per profile |
+| 🧑‍💼 **LinkedIn similar people** | "More profiles for you" recommendations → name, headline, connection |
 
 All results are clean CSV files — open in Excel, import into your analysis, or feed back to your AI.
 
@@ -107,8 +109,9 @@ After that, **every scrape is instant.** No more setup. Ever.
 | Skill | What it does | Platforms |
 |-------|--------------|-----------|
 | [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | TikTok video search, creator discovery, hashtag collection, creator profile export to CSV | TikTok |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn profile header + About export, similar-people recommendations, batch profile pull to CSV | LinkedIn |
 
-*More platforms coming (LinkedIn, Instagram, X/Twitter, YouTube…). Open an issue to vote.*
+*More platforms coming (Instagram, X/Twitter, YouTube…). Open an issue to vote.*
 
 ## 🔧 How to Install
 
@@ -116,26 +119,34 @@ After that, **every scrape is instant.** No more setup. Ever.
 
 > 💬 Install the tiktok-collector skill from https://github.com/monsterget-com/skills
 
+> 💬 Install the linkedin-collector skill from https://github.com/monsterget-com/skills
+
 That's it. The AI clones the repo, installs the runtime, and wires itself up.
 
 ### What the AI does
 
 1. Clones this repository
-2. Copies `skills/tiktok-collector/` → `~/.monsterget/skill/` — a **shared runtime directory**
+2. Copies `skills/<skill>/` → `~/.monsterget/skills/<skill>/` — a **shared runtime directory** (one folder per skill, side-by-side)
 3. Adds a one-line pointer to its own custom-instructions file
 
-Because the runtime lives in one shared location (`~/.monsterget/skill/`), **every AI client on your machine shares it**. Install once, use it from Claude Code, Codex, Cursor, Cline — whatever you have.
+Because the runtime lives in one shared location (`~/.monsterget/skills/`), **every AI client on your machine shares it**. Install once, use it from Claude Code, Codex, Cursor, Cline — whatever you have.
 
-**Prefer to do it by hand?** See [skills/tiktok-collector/INSTALL.md](skills/tiktok-collector/INSTALL.md) for manual steps and the per-client pointer locations.
+**Prefer to do it by hand?** See [`skills/tiktok-collector/INSTALL.md`](skills/tiktok-collector/INSTALL.md) and [`skills/linkedin-collector/INSTALL.md`](skills/linkedin-collector/INSTALL.md) for manual steps and the per-client pointer locations.
 
-**No shell access** (web-only chat like ChatGPT in a browser)? Paste the contents of [`skills/tiktok-collector/SKILL.md`](skills/tiktok-collector/SKILL.md) into your custom instructions — the AI will guide you through the steps manually.
+**No shell access** (web-only chat like ChatGPT in a browser)? Paste the contents of [`skills/tiktok-collector/SKILL.md`](skills/tiktok-collector/SKILL.md) or [`skills/linkedin-collector/SKILL.md`](skills/linkedin-collector/SKILL.md) into your custom instructions — the AI will guide you through the steps manually.
+
+> **Migrating from the old single-skill layout** (`~/.monsterget/skill/`)? Move it once:
+> ```bash
+> mkdir -p ~/.monsterget/skills && mv ~/.monsterget/skill ~/.monsterget/skills/tiktok-collector
+> ```
+> Then update the pointer in your rules file. The tiktok and linkedin runtimes then coexist without conflict.
 
 ## 🧠 Architecture (what actually happens)
 
 ```
 AI ──▶ generates taskId + opens browser URL
          │
-Your Browser ──▶ MonsterGet extension runs the scrape in your TikTok tab
+Your Browser ──▶ MonsterGet extension runs the scrape in your TikTok/LinkedIn tab
                    │
                 Rows stream to server buffer ──▶ AI polls & downloads CSV
 ```

@@ -1,6 +1,6 @@
 # 🛡️ MonsterGet Skills — Web Scraping Anti-Bloqueio para IA
 
-> **Pare de ser bloqueado. Extraia dados do TikTok através do seu navegador real — sua sessão já logada. Automatizado por IA, zero configuração, permanentemente grátis.**
+> **Pare de ser bloqueado. Extraia dados do TikTok e do LinkedIn através do seu navegador real — sua sessão já logada. Automatizado por IA, zero configuração, permanentemente grátis.**
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Español](README.es.md) · **Português**
 
@@ -14,7 +14,7 @@
 
 ## ✨ O que é?
 
-**MonsterGet Skills** transforma qualquer assistente de IA em uma potência de dados do TikTok — sem que suas contas sejam banidas.
+**MonsterGet Skills** transforma qualquer assistente de IA em uma potência de dados do TikTok e do LinkedIn — sem que suas contas sejam banidas.
 
 Aqui está o segredo sujo do web scraping: **scrapers do lado do servidor são bloqueados.** TikTok, Instagram, LinkedIn — todos lutam contra navegadores headless, IPs de datacenter e pools de proxies. Você reforça, eles bloqueiam mais forte. É uma corrida armamentista que você perde.
 
@@ -95,6 +95,7 @@ Depois disso, **cada extração é instantânea.** Nunca mais configure.
 | Skill | O que faz | Plataformas |
 |-------|-----------|-------------|
 | [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | Pesquisa de vídeos TikTok, descoberta de criadores, coleta de hashtags, perfil de criador para CSV | TikTok |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Cabeçalho de perfil do LinkedIn + exportação do About, recomendações de pessoas similares, extração em lote de perfis para CSV | LinkedIn |
 
 *Mais plataformas em breve (LinkedIn, Instagram, X/Twitter, YouTube…). Abra uma issue para votar.*
 
@@ -104,19 +105,21 @@ Depois disso, **cada extração é instantânea.** Nunca mais configure.
 
 > 💬 Instale o skill tiktok-collector de https://github.com/monsterget-com/skills
 
+> 💬 Instale o skill linkedin-collector de https://github.com/monsterget-com/skills
+
 A IA clonará o repositório, instalará o runtime e se configurará.
 
 ### O que a IA faz
 
 1. Clona o repositório
-2. Copia `skills/tiktok-collector/` → `~/.monsterget/skill/` — um **diretório de runtime compartilhado**
+2. Copia `skills/<skill>/` → `~/.monsterget/skills/<skill>/` — um **diretório de runtime compartilhado** (uma pasta por skill, lado a lado)
 3. Adiciona um ponteiro de uma linha ao seu próprio arquivo de instruções personalizadas
 
-Como o runtime fica em um local fixo (`~/.monsterget/skill/`), **todos os seus clientes de IA o compartilham**. Instale uma vez e use com Claude Code, Codex, Cursor, Cline — o que você tiver.
+Como o runtime fica em um local fixo (`~/.monsterget/skills/`), **todos os seus clientes de IA o compartilham**. Instale uma vez e use com Claude Code, Codex, Cursor, Cline — o que você tiver.
 
-**Prefere fazer manualmente?** Veja [skills/tiktok-collector/INSTALL.md](skills/tiktok-collector/INSTALL.md) para os passos manuais e os locais de ponteiro por cliente.
+**Prefere fazer manualmente?** Veja [skills/tiktok-collector/INSTALL.md](skills/tiktok-collector/INSTALL.md) e [skills/linkedin-collector/INSTALL.md](skills/linkedin-collector/INSTALL.md) para os passos manuais e os locais de ponteiro por cliente.
 
-**Sem acesso ao shell** (chat só na web, como ChatGPT)? Cole o conteúdo de [`skills/tiktok-collector/SKILL.md`](skills/tiktok-collector/SKILL.md) nas instruções personalizadas — a IA vai guiá-lo manualmente.
+**Sem acesso ao shell** (chat só na web, como ChatGPT)? Cole o conteúdo de [`skills/tiktok-collector/SKILL.md`](skills/tiktok-collector/SKILL.md) ou [`skills/linkedin-collector/SKILL.md`](skills/linkedin-collector/SKILL.md) nas instruções personalizadas — a IA vai guiá-lo manualmente.
 
 ## 🧠 Arquitetura (o que realmente acontece)
 

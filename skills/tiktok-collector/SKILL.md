@@ -75,7 +75,7 @@ Override via environment variables: `MONSTERGET_BASE_URL=http://localhost:8000` 
 **Resolve the scripts directory once, at the start of the session, and reuse it:**
 
 ```bash
-SCRIPTS="$HOME/.monsterget/skill/scripts"
+SCRIPTS="$HOME/.monsterget/skills/tiktok-collector/scripts"
 
 if [ ! -d "$SCRIPTS" ]; then
   echo "Skill not installed: run the install instruction first." >&2
