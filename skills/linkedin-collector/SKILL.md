@@ -43,7 +43,7 @@ When the user asks "怎么使用", "how to use", or anything asking for usage gu
 
 ```
 AI ──1. GET {BASE_URL}/api/agent/generate-task-id ──▶ {"taskId":"<uuid>"}
-AI ──2. open browser page  {pagePath}?auto=1&agentTaskId={taskId}&profileUrl={url}&count=N
+AI ──2. open browser page  {pagePath}?auto=1&agentTaskId={taskId}&profileUrl={url}
 Page (user browser, logged in + extension) ──▶ POST /api/agent/scrape  (creates task with our taskId)
 Extension opens the LinkedIn profile page and scrapes it
 Page relays rows to server buffer
@@ -88,7 +88,7 @@ Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
 |--------|------|--------------|
 | `update-skill.sh` | Session start — auto-update check | Compares local skill version against GitHub, auto-downloads updates. Also outputs `scrapers_api` for version tracking |
 | `choose-browser.sh <edge\|chrome>` | Installation — user picks a browser | Saves the browser preference (`browser_pref`) to state |
-| `run-scrape.sh <pagePath> <param> <value> [count]` | Every scrape | End-to-end: taskId → open browser → verify process → poll → download CSV |
+| `run-scrape.sh <pagePath> <param> <value>` | Every scrape | End-to-end: taskId → open browser → verify process → poll → download CSV. **No `<count>` — collect the full page** (see the count rule under Scrape types) |
 | `set-download-dir.sh [<dir>]` | First scrape (ask once) | Choose where CSVs are saved. No arg = OS default Downloads dir |
 
 > **🚫 Never run `detect-browser.sh`, `check-login.sh`, or `preflight.sh`** — these are archived reference only. The user guarantees all conditions manually. The AI must not call them during installation, before a scrape, or on failure.
@@ -167,14 +167,15 @@ Each scraper contains all the info needed to build the scrape URL:
 | `name` | `LinkedIn 个人档案` | Human-readable — helps the AI match user intent |
 | `page` | `/linkedin-profile-main` | Use as `<pagePath>` in `run-scrape.sh` |
 | `param` | `profileUrl` | Use as `<param>` in `run-scrape.sh` |
-| `defaultCount` / `countMax` | `1` / `50` | Default and cap for `<count>` |
+| `countMax` | `50` | Cap the platform accepts — **never pass `<count>`; see the count rule below** |
 | `usage` | `/linkedin-profile-main?...` | URL template for reference |
 
 **Rules:**
 1. `SCRAPERS` is set **once per session** (at the start, before the first scrape). All scrapes in the same session reuse it.
-2. To map the user's request, iterate the scrapers array by `name` (or `type`) to find the matching entry, then extract `page` + `param` + `defaultCount`.
-3. Profile accepts a full URL (`https://www.linkedin.com/in/username`) or a bare slug (`username`) — the server normalizes.
-4. **Batch**: multiple profiles are passed as `profileUrls` (comma-separated) — see "Batch profile pulls" below.
+2. To map the user's request, iterate the scrapers array by `name` (or `type`) to find the matching entry, then extract `page` + `param`.
+3. **⚠️ Count rule — never pass `<count>`.** LinkedIn scrapers collect **everything the page shows** (`linkedin_more_profiles` grabs the full "More profiles for you" list, usually 20+ people; `linkedin_profile_main` grabs the single profile). Omitting `<count>` lets the platform collect the full page. Passing a small `<count>` (like `1`) would **truncate the results** — do not use `defaultCount` or any field as the count. Only a user who explicitly asks for "only N results" should ever pass `<count>`, and then capped at `countMax`.
+4. Profile accepts a full URL (`https://www.linkedin.com/in/username`) or a bare slug (`username`) — the server normalizes.
+5. **Batch**: multiple profiles are passed as `profileUrls` (comma-separated) — see "Batch profile pulls" below.
 
 ### Current LinkedIn scraper types (reference — the AI fetches live data)
 
@@ -273,20 +274,20 @@ cat ~/.monsterget/state.json
 **One command does the whole thing** — taskId, browser launch, process verification, polling, download:
 
 ```bash
-bash "$SCRIPTS/run-scrape.sh" <pagePath> <param> <value> [count]
+bash "$SCRIPTS/run-scrape.sh" <pagePath> <param> <value>
 ```
 
-Examples:
+Examples (⚠️ note: no `<count>` — the platform collects the full page):
 
 ```bash
-bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrl "adrienbeaulieu" 1
+bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrl "adrienbeaulieu"
 # → {"status":"ready","taskId":"...","file":"adrienbeaulieu-1-20261013_linkedin_profile_main_ab12cd-monsterget.com.csv","rowCount":1,"url":"..."}
 ```
 
 The script handles, in order:
 1. Read the saved browser preference (the user chose during installation)
 2. Generate a taskId
-3. Build the URL (`{SITE_URL}{pagePath}?auto=1&agentTaskId=...&{param}=...&count=N`) — **values are URL-encoded by the script**, so full URLs and Chinese characters are safe
+3. Build the URL (`{SITE_URL}{pagePath}?auto=1&agentTaskId=...&{param}=...`) — **values are URL-encoded by the script**, so full URLs and Chinese characters are safe. **Do not add `&count=N`** — the platform defaults to collecting everything the page shows
 4. Open it in the chosen browser (fire-and-forget)
 5. Verify the browser process actually started
 6. Poll status every 5s until `ready` / `failed` / `downloaded` / `not_found` (5-minute timeout)
@@ -348,18 +349,18 @@ Wait for the user to respond, then retry the scrape from Step 2.
 When the user needs profile data for **multiple LinkedIn profiles at once** (e.g., "get the profiles of adrienbeaulieu, satyanadella, tvdong"), use the `profileUrls` param with comma-separated values:
 
 ```bash
-bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrls "adrienbeaulieu,satyanadella,tvdong" 3
+bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrls "adrienbeaulieu,satyanadella,tvdong"
 ```
 
 The platform creates a **parent task** that chains through each profile sequentially. The script polls and downloads exactly as with a single scrape — the CSV contains one row per profile with aggregated profile stats.
 
-Same for recommendations:
+Same for recommendations (each profile's full recommendation list):
 
 ```bash
-bash "$SCRIPTS/run-scrape.sh" /linkedin-more-profiles profileUrls "adrienbeaulieu,satyanadella" 2
+bash "$SCRIPTS/run-scrape.sh" /linkedin-more-profiles profileUrls "adrienbeaulieu,satyanadella"
 ```
 
-> **Note**: with `run-scrape.sh`, the `profileUrls` values must be comma-separated on one line. Full URLs and bare slugs both work.
+> **Note**: with `run-scrape.sh`, the `profileUrls` values must be comma-separated on one line. Full URLs and bare slugs both work. Never append a `<count>` here either — each profile's full page data is collected.
 
 ### Running multiple scrapes (AI-orchestrated, one at a time)
 
@@ -367,15 +368,15 @@ When the user asks for **several scrapes at once**, orchestrate them one at a ti
 
 ```bash
 # Task 1 → wait → result
-bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrl "adrienbeaulieu" 1
+bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrl "adrienbeaulieu"
 # → show result to the user (CSV path + preview)
 
 # Task 2 → wait → result
-bash "$SCRIPTS/run-scrape.sh" /linkedin-more-profiles profileUrl "satyanadella" 1
+bash "$SCRIPTS/run-scrape.sh" /linkedin-more-profiles profileUrl "satyanadella"
 # → show result
 
 # Task 3 → wait → result
-bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrls "tvdong,min-gao-358161141" 2
+bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrls "tvdong,min-gao-358161141"
 # → final summary
 ```
 

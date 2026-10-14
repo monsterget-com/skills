@@ -89,7 +89,7 @@ Each script prints one JSON object to stdout and exits 0 on success / 1 on failu
 |--------|---------|
 | `update-skill.sh` | Session start — auto-update check. Compare local version against GitHub, auto-download updates. |
 | `choose-browser.sh <edge\|chrome>` | Save the user's browser choice (manual — no verification, saves whatever the user says). |
-| `run-scrape.sh <pagePath> <param> <value> [count]` | Full scrape: generate taskId, open browser, verify process, poll, download CSV. |
+| `run-scrape.sh <pagePath> <param> <value>` | Full scrape: generate taskId, open browser, verify process, poll, download CSV. **No `<count>` — collect the full page** |
 | `set-download-dir.sh [<dir>]` | Choose where scraped CSVs are saved (persists in state). No arg = system Downloads. Ask the user once per machine. |
 
 > **🚫 Never run `detect-browser.sh`, `check-login.sh`, or `preflight.sh`** — archived reference only. The user guarantees all conditions manually. The AI must not call them during installation, before a scrape, or on failure.
@@ -101,7 +101,7 @@ During installation the user verbally confirms which browser has the MonsterGet 
 ### Scrape
 
 ```bash
-bash ~/.monsterget/skills/linkedin-collector/scripts/run-scrape.sh <pagePath> <param> <value> [count]
+bash ~/.monsterget/skills/linkedin-collector/scripts/run-scrape.sh <pagePath> <param> <value>
 ```
 
 | Intent | `pagePath` | `param` | `value` example |
@@ -111,7 +111,7 @@ bash ~/.monsterget/skills/linkedin-collector/scripts/run-scrape.sh <pagePath> <p
 | several profiles | `/linkedin-profile-main` | `profileUrls` | `adrienbeaulieu,satyanadella,tvdong` (comma-separated, one line) |
 | several "similar to" | `/linkedin-more-profiles` | `profileUrls` | `adrienbeaulieu,satyanadella` |
 
-Default count: 1. Max: 50.
+**⚠️ Never pass a `<count>` as the 4th argument.** LinkedIn scrapers collect **everything the page shows** — `linkedin_more_profiles` grabs the full "More profiles for you" list (usually 20+ people), `linkedin_profile_main` grabs the single profile. Omitting `<count>` collects the full page. Passing a small count (like `1`) **truncates the results**. Only a user who explicitly asks for "only N results" should ever pass a count, capped at `countMax` from the scrapers list.
 
 The script generates the taskId, opens the browser (fire-and-forget), verifies the process started, polls until ready (up to 5 minutes), and downloads the CSV. It never waits for the user.
 
