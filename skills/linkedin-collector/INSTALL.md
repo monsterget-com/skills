@@ -78,3 +78,6 @@ You need 3 things, all in the **same browser** (Edge or Chrome — pick one):
 Tell the AI which browser you used, say "好了", and the AI saves your choice. **No automatic checks — you confirm manually.** Then the AI offers example prompts — e.g. "抓取 LinkedIn 用户 adrienbeaulieu 的档案".
 
 > 💡 This skill uses **pure manual confirmation** — the AI never scans your disk or opens test windows. You know your browser best. If something fails later, the AI will ask you to check the 3 conditions again — still manually.
+>
+> This skill uses the shared Agent v2 contract (`scrapers_api` version 3) and
+> requires extension **1.8.0+**.

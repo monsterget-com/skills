@@ -92,7 +92,7 @@ Each script prints one JSON object to stdout and exits 0 on success / 1 on failu
 |--------|---------|
 | `update-skill.sh` | Session start — auto-update check. Compare local version against GitHub, auto-download updates. |
 | `choose-browser.sh <edge\|chrome>` | Save the user's browser choice (manual — no verification, saves whatever the user says). |
-| `run-scrape.sh <pagePath> <param> <value> [count]` | Full scrape: generate taskId, open browser, verify process, poll, download CSV. |
+| `run-scrape.sh <pagePath> <param> <value> [count] [key=value ...]` | Full scrape: generate taskId, open browser, verify process, poll, download CSV. Extra options cover comments/detail flags. |
 | `set-download-dir.sh [<dir>]` | Choose where scraped CSVs are saved (persists in state). No arg = system Downloads. Ask the user once per machine. |
 
 > **🚫 Never run `detect-browser.sh`, `check-login.sh`, or `preflight.sh`** — archived reference only. The user guarantees all conditions manually. The AI must not call them during installation, before a scrape, or on failure.
@@ -104,7 +104,7 @@ During installation the user verbally confirms which browser has the MonsterGet 
 ### Scrape
 
 ```bash
-bash ~/.monsterget/skills/tiktok-collector/scripts/run-scrape.sh <pagePath> <param> <value> [count]
+bash ~/.monsterget/skills/tiktok-collector/scripts/run-scrape.sh <pagePath> <param> <value> [count] [key=value ...]
 ```
 
 | Intent | `pagePath` | `param` | `value` example |
@@ -115,17 +115,22 @@ bash ~/.monsterget/skills/tiktok-collector/scripts/run-scrape.sh <pagePath> <par
 | videos by @creator | `/tiktok-user-videos` | `username` | `@mike` |
 | profile of @creator | `/tiktok-profile` | `username` | `@mike` |
 | several profiles | `/tiktok-profile` | `usernames` | `mike,jenifer,tiktok` |
+| comments on a video | `/tiktok-comments` | `value` | video URL |
+| details of a video | `/tiktok-video-detail` | `value` / `values` | video URL(s) |
 
-Default counts: video search 50, creator search 30, tag 30, user videos 50. Max: 300.
+Default counts: video search 50, creator search 30, tag 30, user videos 50,
+comments 50, video detail 20. Max: 300 (comments 200, video detail 50).
+Comments support `include_replies=0|1`, `max_replies=N`; video detail supports
+`export_video=0|1`, `export_cover=0|1`, `export_audio=0|1`.
 
-The script generates the taskId, opens the browser (fire-and-forget), verifies the process started, polls until ready (up to 5 minutes), and downloads the CSV. It never waits for the user.
+The script generates the taskId, opens the browser (fire-and-forget), verifies the process started, polls until ready (default 20 minutes; set `MONSTERGET_POLL_TIMEOUT=1800` for long batches), and downloads with HTTP/file verification. It never waits for the user.
 
-Output on success: `{"status":"ready","taskId":"...","file":"...csv","rowCount":N,"url":"..."}`
+Output on success: `{"status":"ready","taskId":"...","file":"...csv","rowCount":N,"empty":false,"url":"..."}`
 
 ## Behavior rules for the agent
 
 - **Open + verify + poll in one shot.** Never ask "is the browser open?" or "shall I continue?".
-- **Multiple scrapes = orchestrate them one at a time.** Run the first `run-scrape.sh`, wait for its result, then run the next. The page's `auto=1` flow already inserts a random 5-10s delay before the scraper window opens (anti-detection), so you don't add any sleep — just run each scrape and report between them.
+- **Multiple scrapes = orchestrate them one at a time.** Run the first `run-scrape.sh`, wait for its result, then run the next. The page's `auto=1` flow already inserts a random 3–6s delay before the scraper window opens (anti-detection), so you don't add any sleep — just run each scrape and report between them.
 - **Show the CSV path + a few rows** so the user trusts the result.
 - **First scrape each session**: tell the user once that this drives their real TikTok account (user's account, user's responsibility).
 - **Where CSVs are saved**: the first time you scrape, ask the user where CSV files should go — "保存到系统下载目录（默认）可以吗？还是换个路径？" Then save their choice with `set-download-dir.sh` (no arg = system Downloads, or pass a path). It persists, so ask at most once per machine; `run-scrape.sh` reports the `dir` in its output.
@@ -139,6 +144,6 @@ Output on success: `{"status":"ready","taskId":"...","file":"...csv","rowCount":
 | `not_found` / `timeout` | Extension missing, not logged in, or the tab was closed | Run the 3-point manual checklist (SKILL.md Step 3) — the user checks each in the browser by hand |
 | `platform_reachable: false` | monsterget.com unreachable | Ask user to check the URL manually |
 | `browser did not start` | Launch command failed | Ask user to open the URL manually in the extension browser |
-| Not ready in 5 minutes | Extension missing / not logged in / tab closed | Keep the tab open until the scrape finishes |
+| Not ready within the poll window | Extension missing / not logged in / tab closed / still queued | Keep the tab open until `ready`; the extension auto-closes after completion |
 | `already_downloaded` | CSV already fetched | Run again (new taskId) |
 | `429 too_many_concurrent_scrapes` | Free tier has 1 slot | Wait for running task to finish, then retry |

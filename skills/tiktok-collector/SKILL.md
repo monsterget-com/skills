@@ -49,7 +49,8 @@ Refer to the **zh-CN Appendix** at the bottom of this file for the exact Chinese
 ```
 AI ──1. GET {BASE_URL}/api/agent/generate-task-id ──▶ {"taskId":"<uuid>"}
 AI ──2. open browser page  {pagePath}?auto=1&agentTaskId={taskId}&{param}=...&count=N
-Page (user browser, logged in + extension) ──▶ POST /api/agent/scrape  (creates task with our taskId)
+Page (user browser, logged in + extension) ──▶ auto-fill form + real click on the Start button
+                                            ──▶ POST /api/agent/scrape  (creates task with our taskId)
 Extension executes scrape in TikTok tab
 Page relays rows to server buffer
 AI ──3. GET {BASE_URL}/api/agent/delivery/task/{taskId}/status  ──▶ {status:"ready"}
@@ -57,6 +58,8 @@ AI ──4. GET {BASE_URL}/api/agent/delivery/task/{taskId}/data    ──▶ CS
 ```
 
 **Key invariant:** the AI generates the taskId itself *before* opening the browser, so it never needs to read the browser address bar.
+
+**Human-like trigger:** the auto-start branch types into the visible form and dispatches real mouse events on the page's Start button. The page's own submit flow then runs — only its task-creation request is routed to `/api/agent/scrape`, so the task is still an agent task with CSV delivery. Manual clicking is unchanged.
 
 ## Configuration
 
@@ -93,7 +96,7 @@ Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
 |--------|------|--------------|
 | `update-skill.sh` | Session start (Step 0a) — auto-update check | Compares local skill version against GitHub, auto-downloads updates. Also outputs `scrapers_api` for version tracking |
 | `choose-browser.sh <edge\|chrome>` | Installation — user picks a browser | Saves the browser preference (`browser_pref`) to state |
-| `run-scrape.sh <pagePath> <param> <value> [count]` | Every scrape | End-to-end: taskId → open browser → verify process → poll → download CSV |
+| `run-scrape.sh <pagePath> <param> <value> [count] [key=value ...]` | Every scrape | End-to-end: taskId → open browser → verify process → poll → download CSV. Extra `key=value` args cover options like `include_replies`, `max_replies`, `export_video` |
 | `set-download-dir.sh [<dir>]` | First scrape (ask once) | Choose where CSVs are saved. No arg = OS default Downloads dir |
 
 > **🚫 Never run `detect-browser.sh`, `check-login.sh`, or `preflight.sh`** — these are archived reference only. The user guarantees all conditions manually. The AI must not call them during installation, before a scrape, or on failure.
@@ -168,18 +171,23 @@ Each scraper contains all the info needed to build the scrape URL:
 
 | Field | Example | Purpose |
 |-------|---------|---------|
+| `platform` | `tiktok` | **Filter: this skill only uses `tiktok`** |
 | `type` | `search_video` | Stable identifier |
 | `name` | `TikTok 视频搜索` | Human-readable — helps the AI match user intent |
 | `page` | `/tiktok-search-video` | Use as `<pagePath>` in `run-scrape.sh` |
 | `param` | `query` | Use as `<param>` in `run-scrape.sh` |
-| `defaultCount` / `countMax` | `50` / `300` | Default and cap for `<count>` |
+| `input` | `{kind, batch, maxBatch}` | v2 types: `value` / `values`; legacy: `query`/`username` |
+| `count` | `{min,max,default,scope}` | Count range and whether it is per item |
+| `options` | `{sort, feed, ...}` | Extra `key=value` args for `run-scrape.sh` |
 | `usage` | `/tiktok-search-video?...` | URL template for reference |
 
 **Rules:**
 1. `SCRAPERS` is set **once per session** (at the start, before the first scrape). All scrapes in the same session reuse it.
-2. To map the user's request, iterate the scrapers array by `name` (or `type`) to find the matching entry, then extract `page` + `param` + `defaultCount`.
-3. Username accepts `@name` or full profile URL (server normalizes).
-4. The static table of current TikTok scrapers is moved to the Appendix — it is for human readability only, never for the AI to map against.
+2. **Filter by `platform` first** — this skill only uses `platform: "tiktok"`. If the request is LinkedIn/X/Upwork, use that platform's skill.
+3. To map the user's request, iterate the filtered array by `name` (or `type`) to find the matching entry, then extract `page` + `param` + `count`.
+4. For v2 types (`api: "v2"`), `<param>` is `value` (single) or `values` (batch, comma-separated). Extra options go after `<count>` as `key=value`.
+5. Username accepts `@name` or full profile URL (server normalizes).
+6. The static table of current TikTok scrapers is in the Appendix — human readability only, never for the AI to map against.
 
 ## The flow
 
@@ -271,33 +279,39 @@ cat ~/.monsterget/state.json
 **One command does the whole thing** — taskId, browser launch, process verification, polling, download:
 
 ```bash
-bash "$SCRIPTS/run-scrape.sh" <pagePath> <param> <value> [count]
+bash "$SCRIPTS/run-scrape.sh" <pagePath> <param> <value> [count] [key=value ...]
 ```
 
 Examples:
 
 ```bash
 bash "$SCRIPTS/run-scrape.sh" /tiktok-search-video query "mike tyson" 20
-# → {"status":"ready","taskId":"...","file":"mike-20-20260905_tiktok_video_ab12cd.csv","rowCount":20,"url":"..."}
+# → {"status":"ready","taskId":"...","file":"mike-20-20260905_tiktok_video_ab12cd-monsterget.com.csv","rowCount":20,"empty":false,"url":"..."}
+
+bash "$SCRIPTS/run-scrape.sh" /tiktok-comments value "https://www.tiktok.com/@user/video/123" 50 include_replies=1 max_replies=5
+
+bash "$SCRIPTS/run-scrape.sh" /tiktok-video-detail values "url1,url2" 20 export_video=0
 ```
 
 The script handles, in order:
 1. Read the saved browser preference (the user chose during installation)
 2. Generate a taskId
-3. Build the URL (`{SITE_URL}{pagePath}?auto=1&agentTaskId=...&{param}=...&count=N`) — **values are URL-encoded by the script**, so spaces and Chinese characters are safe
+3. Build the URL (`{SITE_URL}{pagePath}?auto=1&agentTaskId=...&{param}=...&count=N&options...`) — **values are URL-encoded by the script**, so spaces and Chinese characters are safe
 4. Open it in the chosen browser (fire-and-forget)
 5. Verify the browser process actually started
-6. Poll status every 5s until `ready` / `failed` / `downloaded` / `not_found` (5-minute timeout)
-7. Download the CSV with the server's semantic filename into the resolved download dir
+6. Poll status every 5s until `ready` / `downloaded` (default 20-minute timeout; batch can set `MONSTERGET_POLL_TIMEOUT=1800`)
+7. Download the CSV with the server's semantic filename; check HTTP 200/409/410 and file non-empty
+
+`not_found` is **not terminal** — the page may still be queued behind a 429 concurrency slot (the page self-retries for up to ~5 minutes).
 
 #### Read the result
 
 | `status` in output | Meaning | What to do |
 |--------------------|---------|------------|
-| `ready` | CSV downloaded — `file` is the filename, `dir` the folder, `rowCount` the row count | Show the user a preview + the path |
-| `not_found` | The page never created the task (launch failed or extension not ready) | Ask the user to check the 3 conditions (see Step 3) |
-| `timeout` | Not ready in 5 min | See Step 3 — checklist |
-| `failed` | Task failed on the platform | Report the error |
+| `ready` | CSV downloaded — `file`, `dir`, `rowCount`, `empty` | Show a preview + the path |
+| `ready` + `empty:true` | Task completed with 0 rows | Tell the user no data was returned (check login/query) |
+| `not_found` | The page never created the task (launch failed, extension not ready, or still queued) | Ask the user to check the 3 conditions (see Step 3) |
+| `timeout` | Not ready within the configured window | See Step 3 — checklist |
 | `already_downloaded` | The CSV is tombstoned (one download only) | Run again — a new taskId is generated |
 
 #### Verify & present
@@ -372,8 +386,8 @@ bash "$SCRIPTS/run-scrape.sh" /tiktok-tag query kpop 5
 Key rules:
 - **Do not stop to ask the user between tasks.** Each scrape is independent and should run as soon as the previous one is ready.
 - **The pre-task reminder is said once at the start of the batch**, not repeated per task within the batch. Say: *"我将连续抓取以下内容……"* then chain the scrapes.
-- **The page already inserts a random 5-10s delay** before the scraper window opens — the AI should not add its own sleep.
-- **If a scrape returns `429 too_many_concurrent_scrapes`**, a previous task is still `pending` / `processing` — wait for it to finish, then retry.
+- **The page already inserts a random 3–6s anti-detection delay** before the scraper window opens — the AI should not add its own sleep.
+- **If a scrape returns `429 too_many_concurrent_scrapes`**, the page automatically waits and retries for up to ~5 minutes. Do not create duplicate tasks; keep polling.
 
 ## Error handling
 
@@ -385,8 +399,9 @@ Key rules:
 | `already_downloaded` | Already fetched once | Run the scrape again (new taskId) |
 | `409 not_ready` | Data not ready yet | Keep polling |
 | `409 buffer_unavailable` | Buffer cleared by TTL race | Retry a few seconds later |
-| `429 too_many_concurrent_scrapes` | A previous task is still pending/processing | Free users have 1 concurrent window — wait for the running task to reach `ready`/`failed`, then retry. Closing the browser tab is NOT required |
+| `429 too_many_concurrent_scrapes` | A previous task is still pending/processing | Free users have 1 concurrent window — the page self-retries ~5 min; keep polling. Closing the browser tab is NOT required |
 | `402 insufficient_credits` | Credits exhausted | Signup grants 10M credits — almost never runs out; contact the platform |
+| `ready` + `empty:true` | Task completed with 0 rows | Check TikTok login, broaden the query, or verify the video URL |
 
 ## Concurrency note
 
@@ -402,7 +417,7 @@ The limit counts **running tasks**, not open windows:
 
 - **Use the extension-installed browser.** Never rely on the system default browser — it may not have the extension. The user chose which browser during installation; that browser must have the extension installed.
 - **Never re-implement the browser/process/polling logic inline.** The scripts are the single source of truth — that is what makes this work identically across AI clients and operating systems.
-- **Keep the tab open** until the task reaches `ready`. Closing the tab before the extension reports results means no server copy is produced.
+- **Keep the tab open until the task reaches `ready`.** The extension normally closes the scraper window and task page automatically 45–90 seconds after completion; do not close them manually before `ready`.
 - After downloading, show the user the CSV path and a preview so they trust the result.
 - **Say the account-risk line once per batch**, before the first scrape: this drives the user's real TikTok account, and bulk collection may violate TikTok's ToS — the user's account, the user's responsibility.
 - **The pre-task reminder (Step 1) exists because the user opted out of auto-detection.** It is the user's only signal that the browser is about to open. Never skip it.
@@ -421,6 +436,10 @@ The limit counts **running tasks**, not open windows:
 
 ### Current scraper types (for reference only — the AI fetches live data, never uses this table)
 
+> **Platform filter**: this skill only uses entries whose `platform` is `tiktok`.
+> The live catalog also contains X / LinkedIn / Upwork entries — use the
+> corresponding skill for those.
+
 | Type | pagePath | Param | Default | Max |
 |------|----------|-------|---------|-----|
 | Video search | `/tiktok-search-video` | `query` | 50 | 300 |
@@ -428,6 +447,8 @@ The limit counts **running tasks**, not open windows:
 | Hashtag search | `/tiktok-tag` | `query` | 30 | 300 |
 | Creator videos | `/tiktok-user-videos` | `username` | 50 | 300 |
 | Creator profile | `/tiktok-profile` | `username` | 1 | 1 |
+| Video comments | `/tiktok-comments` | `value` (video URL) | 50 | 200 |
+| Video detail | `/tiktok-video-detail` | `value` / `values` (video URL(s)) | 20 | 50 |
 
 ### Installation Guide (中文)
 

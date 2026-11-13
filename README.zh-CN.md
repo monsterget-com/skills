@@ -1,6 +1,6 @@
 # 🛡️ MonsterGet Skills — 为 AI 打造的反封禁网页采集
 
-> **告别封号。通过你自己的真实浏览器采集 TikTok 和 LinkedIn —— 用你已登录的会话。AI 全自动，零配置，永久免费。**
+> **告别封号。通过你自己的真实浏览器采集 TikTok、X/Twitter、LinkedIn 和 Upwork —— 用你已登录的会话。AI 全自动，零配置，永久免费。**
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md) · [Español](README.es.md) · [Português](README.pt.md)
 
@@ -14,7 +14,7 @@
 
 ## ✨ 这是什么？
 
-**MonsterGet Skills** 让任何 AI 助手变身 TikTok 和 LinkedIn 数据引擎 —— 而且不会让你的账号被封。
+**MonsterGet Skills** 让任何 AI 助手变身 TikTok、X/Twitter、LinkedIn 和 Upwork 数据引擎 —— 而且不会让你的账号被封。
 
 网页采集有一个公开的秘密：**服务端采集器会被封。** TikTok、Instagram、LinkedIn —— 它们都在对抗无头浏览器、机房 IP 和代理池。你加固，它们封得更狠。这是一场你注定输的军备竞赛。
 
@@ -106,12 +106,14 @@ AI 负责全部编排：
 
 ## 📦 可用的 Skill
 
-| Skill | 功能 | 平台 |
-|-------|------|------|
-| [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | TikTok 视频搜索、达人挖掘、标签采集、达人资料导出为 CSV | TikTok |
-| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn 档案头部 + About 导出、相似用户推荐、批量档案拉取为 CSV | LinkedIn |
+| Skill | 功能 | 类型数 |
+|-------|------|--------|
+| [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | 视频搜索、达人挖掘、标签、达人视频/资料、视频评论与详情 | 7 |
+| [🐦 x-collector](skills/x-collector/SKILL.md) | 搜索信息流、搜索用户、账号资料、用户推文、推文详情/评论、首页信息流 | 7 |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn 档案头部 + About、相似用户推荐、批量拉取 | 2 |
+| [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Upwork 岗位搜索，支持指定 URL、页数与 autoAll | 1 |
 
-*更多平台即将支持（Instagram、X/Twitter、YouTube…）。开 issue 投票。*
+**共 17 个爬虫**，统一走 Agent API（`scrapers_api` v3，扩展 **1.8.0+**）。
 
 ## 🔧 安装方法
 
@@ -119,7 +121,11 @@ AI 负责全部编排：
 
 > 💬 安装 skill tiktok-collector，https://github.com/monsterget-com/skills
 
+> 💬 安装 skill x-collector，https://github.com/monsterget-com/skills
+
 > 💬 安装 skill linkedin-collector，https://github.com/monsterget-com/skills
+
+> 💬 安装 skill upwork-collector，https://github.com/monsterget-com/skills
 
 AI 会自动克隆仓库，安装运行时，并配置自身。
 
@@ -131,9 +137,9 @@ AI 会自动克隆仓库，安装运行时，并配置自身。
 
 因为运行时放在一个固定位置（`~/.monsterget/skills/`），**你所有 AI 客户端共享它**。安装一次，Claude Code、Codex、Cursor、Cline 都能用。
 
-**想手动安装？** 见 [skills/tiktok-collector/INSTALL.md](skills/tiktok-collector/INSTALL.md) 和 [skills/linkedin-collector/INSTALL.md](skills/linkedin-collector/INSTALL.md) —— 有手动步骤和每个客户端的指针位置。
+**想手动安装？** 见对应 skill 目录下的 `INSTALL.md` —— 有手动步骤和每个客户端的指针位置。
 
-**没有 shell 权限**（比如纯网页版 ChatGPT）？把 [`skills/tiktok-collector/SKILL.md`](skills/tiktok-collector/SKILL.md) 或 [`skills/linkedin-collector/SKILL.md`](skills/linkedin-collector/SKILL.md) 的内容粘贴到你的自定义指令中，AI 会文字指引你完成每一步。
+**没有 shell 权限**（比如纯网页版 ChatGPT）？把所选 `skills/<skill>/SKILL.md` 的内容粘贴到你的自定义指令中，AI 会文字指引你完成每一步。
 
 > **从旧的单 skill 目录迁移**（`~/.monsterget/skill/`）？只需一次：
 > ```bash

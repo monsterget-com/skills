@@ -29,24 +29,40 @@ json_val() {
   sed -n 's/.*"'"$1"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1
 }
 
+# ver_gt A B — true（exit 0）当 A 严格大于 B；支持 1.2.3 形式。
+# 用于防止「本地版本比远端新」时被 update-skill.sh 降级覆盖。
+ver_gt() {
+  [ "$1" = "$2" ] && return 1
+  local first
+  first="$(printf '%s\n%s\n' "$1" "$2" | sort -V 2>/dev/null | head -1)"
+  [ "$first" = "$2" ]
+}
+
 # ---- read local version ----
 
 LOCAL_SKILL="0"
 LOCAL_EXT="unknown"
 LOCAL_API="0"
-if [ -f "$LOCAL_VERSION_FILE" ]; then
-  LOCAL_SKILL="$(json_val "skill_version" < "$LOCAL_VERSION_FILE")"
-  [ -z "$LOCAL_SKILL" ] && LOCAL_SKILL="0"
-  LOCAL_EXT="$(json_val "extension_version" < "$LOCAL_VERSION_FILE")"
-  [ -z "$LOCAL_EXT" ] && LOCAL_EXT="unknown"
-  LOCAL_API="$(json_val "scrapers_api" < "$LOCAL_VERSION_FILE")"
-  [ -z "$LOCAL_API" ] && LOCAL_API="0"
-elif [ -f "$SKILL_DIR/VERSION.json" ]; then
-  # Bootstrap: no ~/.monsterget/version.json yet, fall back to skill dir
+# 本地版本以本 skill 自己的 VERSION.json 为准（避免共享 version.json 的
+# skill_version 字段缺失/为 0 时把本地误判成旧版，从而被远端降级覆盖）。
+if [ -f "$SKILL_DIR/VERSION.json" ]; then
   LOCAL_SKILL="$(json_val "skill" < "$SKILL_DIR/VERSION.json")"
   [ -z "$LOCAL_SKILL" ] && LOCAL_SKILL="0"
   LOCAL_API="$(json_val "scrapers_api" < "$SKILL_DIR/VERSION.json")"
   [ -z "$LOCAL_API" ] && LOCAL_API="0"
+fi
+if [ -f "$LOCAL_VERSION_FILE" ]; then
+  # 旧安装没有 per-skill VERSION.json 时才回退到共享字段
+  if [ "$LOCAL_SKILL" = "0" ]; then
+    LOCAL_SKILL="$(json_val "skill_version" < "$LOCAL_VERSION_FILE")"
+    [ -z "$LOCAL_SKILL" ] && LOCAL_SKILL="0"
+  fi
+  LOCAL_EXT="$(json_val "extension_version" < "$LOCAL_VERSION_FILE")"
+  [ -z "$LOCAL_EXT" ] && LOCAL_EXT="unknown"
+  if [ "$LOCAL_API" = "0" ]; then
+    LOCAL_API="$(json_val "scrapers_api" < "$LOCAL_VERSION_FILE")"
+    [ -z "$LOCAL_API" ] && LOCAL_API="0"
+  fi
 fi
 
 # ---- fetch remote version ----
@@ -71,10 +87,10 @@ REMOTE_API="$(printf '%s' "$REMOTE_JSON" | json_val "scrapers_api")"
 
 # ---- compare ----
 
-if [ "$LOCAL_SKILL" = "$REMOTE_SKILL" ]; then
-  # Skill is current — output extension/scrapers info for the AI to action on
+if ! ver_gt "$REMOTE_SKILL" "$LOCAL_SKILL"; then
+  # 远端版本 <= 本地版本（或远端缺失/无法解析）→ 保持本地，绝不降级
   printf '{"updated":false,"current_version":"%s","scrapers_api":"%s","extension_recommended":"%s","extension_install_url":"%s","error":null}\n' \
-    "$REMOTE_VER" "$REMOTE_API" "$REMOTE_EXT" "$REMOTE_INSTALL_URL"
+    "$LOCAL_SKILL" "$LOCAL_API" "$REMOTE_EXT" "$REMOTE_INSTALL_URL"
   exit 0
 fi
 

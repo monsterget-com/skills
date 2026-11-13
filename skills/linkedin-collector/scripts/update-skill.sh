@@ -29,6 +29,15 @@ json_val() {
   sed -n 's/.*"'"$1"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1
 }
 
+# ver_gt A B — true（exit 0）当 A 严格大于 B；支持 1.2.3 形式。
+# 用于防止「本地版本比远端新」时被 update-skill.sh 降级覆盖。
+ver_gt() {
+  [ "$1" = "$2" ] && return 1
+  local first
+  first="$(printf '%s\n%s\n' "$1" "$2" | sort -V 2>/dev/null | head -1)"
+  [ "$first" = "$2" ]
+}
+
 # ---- read local version ----
 # The skill's own VERSION.json is the source of truth for its version.
 # ~/.monsterget/version.json is SHARED across skills (tiktok-collector's
@@ -76,10 +85,10 @@ REMOTE_API="$(printf '%s' "$REMOTE_JSON" | json_val "scrapers_api")"
 
 # ---- compare ----
 
-if [ "$LOCAL_SKILL" = "$REMOTE_SKILL" ]; then
-  # Skill is current — output extension/scrapers info for the AI to action on
+if ! ver_gt "$REMOTE_SKILL" "$LOCAL_SKILL"; then
+  # 远端版本 <= 本地版本（或远端缺失/无法解析）→ 保持本地，绝不降级
   printf '{"updated":false,"current_version":"%s","scrapers_api":"%s","extension_recommended":"%s","extension_install_url":"%s","error":null}\n' \
-    "$REMOTE_VER" "$REMOTE_API" "$REMOTE_EXT" "$REMOTE_INSTALL_URL"
+    "$LOCAL_SKILL" "$LOCAL_API" "$REMOTE_EXT" "$REMOTE_INSTALL_URL"
   exit 0
 fi
 

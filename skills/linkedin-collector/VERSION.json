@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "skill": "1.0.0",
-  "scrapers_api": "2",
-  "extension_recommended": "1.2.2",
+  "version": "1.1.0",
+  "skill": "1.1.0",
+  "scrapers_api": "3",
+  "extension_recommended": "1.8.0",
   "extension_install_url": "https://monsterget.com/install",
-  "changelog": "v1.0.0: 首个版本 — LinkedIn 个人档案抓取（linkedin_profile_main）与相似用户推荐（linkedin_more_profiles），复用 agent 通道与父子任务串联；需要后端 scrapers_api v2。"
+  "changelog": "v1.1.0: 对齐 Agent v2 / scrapers_api 3 — count 规则修正（profile_main 省略/1，more_profiles 传 50）；轮询默认 20 分钟（批量 30 分钟）；下载校验 200/409/410；空结果 empty 标记；补充批量休息与自动关窗说明。"
 }

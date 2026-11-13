@@ -44,7 +44,8 @@ When the user asks "怎么使用", "how to use", or anything asking for usage gu
 ```
 AI ──1. GET {BASE_URL}/api/agent/generate-task-id ──▶ {"taskId":"<uuid>"}
 AI ──2. open browser page  {pagePath}?auto=1&agentTaskId={taskId}&profileUrl={url}
-Page (user browser, logged in + extension) ──▶ POST /api/agent/scrape  (creates task with our taskId)
+Page (user browser, logged in + extension) ──▶ auto-fill form + real click on the Start button
+                                            ──▶ POST /api/agent/scrape  (creates task with our taskId)
 Extension opens the LinkedIn profile page and scrapes it
 Page relays rows to server buffer
 AI ──3. GET {BASE_URL}/api/agent/delivery/task/{taskId}/status  ──▶ {status:"ready"}
@@ -52,6 +53,8 @@ AI ──4. GET {BASE_URL}/api/agent/delivery/task/{taskId}/data    ──▶ CS
 ```
 
 **Key invariant:** the AI generates the taskId itself *before* opening the browser, so it never needs to read the browser address bar.
+
+**Human-like trigger:** the auto-start branch types into the visible form and dispatches real mouse events on the page's Start button. The page's own submit flow then runs — only its task-creation request is routed to `/api/agent/scrape`, so the task is still an agent task with CSV delivery. Manual clicking is unchanged.
 
 ## Configuration
 
@@ -88,7 +91,7 @@ Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
 |--------|------|--------------|
 | `update-skill.sh` | Session start — auto-update check | Compares local skill version against GitHub, auto-downloads updates. Also outputs `scrapers_api` for version tracking |
 | `choose-browser.sh <edge\|chrome>` | Installation — user picks a browser | Saves the browser preference (`browser_pref`) to state |
-| `run-scrape.sh <pagePath> <param> <value>` | Every scrape | End-to-end: taskId → open browser → verify process → poll → download CSV. **No `<count>` — collect the full page** (see the count rule under Scrape types) |
+| `run-scrape.sh <pagePath> <param> <value> [count] [key=value ...]` | Every scrape | End-to-end: taskId → open browser → verify process → poll → download CSV. `more_profiles` should pass `count=50` (see the count rule) |
 | `set-download-dir.sh [<dir>]` | First scrape (ask once) | Choose where CSVs are saved. No arg = OS default Downloads dir |
 
 > **🚫 Never run `detect-browser.sh`, `check-login.sh`, or `preflight.sh`** — these are archived reference only. The user guarantees all conditions manually. The AI must not call them during installation, before a scrape, or on failure.
@@ -163,19 +166,24 @@ Each scraper contains all the info needed to build the scrape URL:
 
 | Field | Example | Purpose |
 |-------|---------|---------|
+| `platform` | `linkedin` | **Filter: this skill only uses `linkedin`** |
 | `type` | `linkedin_profile_main` | Stable identifier |
 | `name` | `LinkedIn 个人档案` | Human-readable — helps the AI match user intent |
 | `page` | `/linkedin-profile-main` | Use as `<pagePath>` in `run-scrape.sh` |
 | `param` | `profileUrl` | Use as `<param>` in `run-scrape.sh` |
-| `countMax` | `50` | Cap the platform accepts — **never pass `<count>`; see the count rule below** |
+| `count` / `countMax` | `{min,max,default,scope}` | Count range and scope |
 | `usage` | `/linkedin-profile-main?...` | URL template for reference |
 
 **Rules:**
 1. `SCRAPERS` is set **once per session** (at the start, before the first scrape). All scrapes in the same session reuse it.
-2. To map the user's request, iterate the scrapers array by `name` (or `type`) to find the matching entry, then extract `page` + `param`.
-3. **⚠️ Count rule — never pass `<count>`.** LinkedIn scrapers collect **everything the page shows** (`linkedin_more_profiles` grabs the full "More profiles for you" list, usually 20+ people; `linkedin_profile_main` grabs the single profile). Omitting `<count>` lets the platform collect the full page. Passing a small `<count>` (like `1`) would **truncate the results** — do not use `defaultCount` or any field as the count. Only a user who explicitly asks for "only N results" should ever pass `<count>`, and then capped at `countMax`.
-4. Profile accepts a full URL (`https://www.linkedin.com/in/username`) or a bare slug (`username`) — the server normalizes.
-5. **Batch**: multiple profiles are passed as `profileUrls` (comma-separated) — see "Batch profile pulls" below.
+2. **Filter by `platform` first** — this skill only uses `platform: "linkedin"`. If the request is TikTok/X/Upwork, use that platform's skill.
+3. To map the user's request, iterate the filtered array by `name` (or `type`) to find the matching entry, then extract `page` + `param`.
+4. **⚠️ Count rule (per scraper).**
+   - `linkedin_profile_main`: one profile per URL; `count` does not change the row. Omit it, or pass `1`.
+   - `linkedin_more_profiles`: the popup renders the full list (usually 20+). Pass **`count=50`** (the platform max) so nothing is truncated. Omitting `count` makes the page default to **30** — that can cut a long list.
+   - For batch `profileUrls`, `count` is **per profile**, not the number of profiles. Batch size is the length of the `profileUrls` list.
+5. Profile accepts a full URL (`https://www.linkedin.com/in/username`) or a bare slug (`username`) — the server normalizes.
+6. **Batch**: multiple profiles are passed as `profileUrls` (comma-separated) — see "Batch profile pulls" below.
 
 ### Current LinkedIn scraper types (reference — the AI fetches live data)
 
@@ -274,33 +282,39 @@ cat ~/.monsterget/state.json
 **One command does the whole thing** — taskId, browser launch, process verification, polling, download:
 
 ```bash
-bash "$SCRIPTS/run-scrape.sh" <pagePath> <param> <value>
+bash "$SCRIPTS/run-scrape.sh" <pagePath> <param> <value> [count] [key=value ...]
 ```
 
-Examples (⚠️ note: no `<count>` — the platform collects the full page):
+Examples:
 
 ```bash
+# Profile main: one row per profile; omit count or pass 1
 bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrl "adrienbeaulieu"
-# → {"status":"ready","taskId":"...","file":"adrienbeaulieu-1-20261013_linkedin_profile_main_ab12cd-monsterget.com.csv","rowCount":1,"url":"..."}
+
+# More profiles: pass count=50 to cover the full popup
+bash "$SCRIPTS/run-scrape.sh" /linkedin-more-profiles profileUrl "adrienbeaulieu" 50
+# → {"status":"ready","taskId":"...","file":"adrienbeaulieu-50-...-monsterget.com.csv","rowCount":23,"empty":false,"url":"..."}
 ```
 
 The script handles, in order:
 1. Read the saved browser preference (the user chose during installation)
 2. Generate a taskId
-3. Build the URL (`{SITE_URL}{pagePath}?auto=1&agentTaskId=...&{param}=...`) — **values are URL-encoded by the script**, so full URLs and Chinese characters are safe. **Do not add `&count=N`** — the platform defaults to collecting everything the page shows
+3. Build the URL (`{SITE_URL}{pagePath}?auto=1&agentTaskId=...&{param}=...`) — **values are URL-encoded by the script**, so full URLs and Chinese characters are safe
 4. Open it in the chosen browser (fire-and-forget)
 5. Verify the browser process actually started
-6. Poll status every 5s until `ready` / `failed` / `downloaded` / `not_found` (5-minute timeout)
-7. Download the CSV with the server's semantic filename into the resolved download dir
+6. Poll status every 5s until `ready` / `downloaded` (default 20 min; batch use `MONSTERGET_POLL_TIMEOUT=1800`)
+7. Download the CSV with HTTP/file verification
+
+`not_found` is **not terminal** — the page may still be queued behind a 429 concurrency slot.
 
 #### Read the result
 
 | `status` in output | Meaning | What to do |
 |--------------------|---------|------------|
-| `ready` | CSV downloaded — `file` is the filename, `dir` the folder, `rowCount` the row count | Show the user a preview + the path |
-| `not_found` | The page never created the task (launch failed or extension not ready) | Ask the user to check the 3 conditions (see Step 3) |
-| `timeout` | Not ready in 5 min | See Step 3 — checklist |
-| `failed` | Task failed on the platform | Report the error |
+| `ready` | CSV downloaded — `file`, `dir`, `rowCount`, `empty` | Show a preview + the path |
+| `ready` + `empty:true` | Task completed with 0 rows | Check LinkedIn login / private profile |
+| `not_found` | The page never created the task (launch failed, extension not ready, or still queued) | Ask the user to check the 3 conditions (see Step 3) |
+| `timeout` | Not ready within the configured window | See Step 3 — checklist |
 | `already_downloaded` | The CSV is tombstoned (one download only) | Run again — a new taskId is generated |
 
 #### Verify & present
@@ -360,7 +374,7 @@ Same for recommendations (each profile's full recommendation list):
 bash "$SCRIPTS/run-scrape.sh" /linkedin-more-profiles profileUrls "adrienbeaulieu,satyanadella"
 ```
 
-> **Note**: with `run-scrape.sh`, the `profileUrls` values must be comma-separated on one line. Full URLs and bare slugs both work. Never append a `<count>` here either — each profile's full page data is collected.
+> **Note**: with `run-scrape.sh`, the `profileUrls` values must be comma-separated on one line. Full URLs and bare slugs both work. `count` is **per profile**; for `linkedin_more_profiles` pass `50`, for `linkedin_profile_main` omit it or pass `1`.
 
 ### Running multiple scrapes (AI-orchestrated, one at a time)
 
@@ -383,8 +397,8 @@ bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrls "tvdong,min-gao
 Key rules:
 - **Do not stop to ask the user between tasks.** Each scrape is independent and should run as soon as the previous one is ready.
 - **The pre-task reminder is said once at the start of the batch**, not repeated per task within the batch. Say: *"我将连续抓取以下内容……"* then chain the scrapes.
-- **The page already inserts a random 5-10s delay** before the scraper window opens — the AI should not add its own sleep.
-- **If a scrape returns `429 too_many_concurrent_scrapes`**, a previous task is still `pending` / `processing` — wait for it to finish, then retry.
+- **The page already inserts a random 3–6s anti-detection delay** before the scraper window opens — the AI should not add its own sleep.
+- **If a scrape returns `429 too_many_concurrent_scrapes`**, the page automatically waits and retries for up to ~5 minutes. Do not create duplicate tasks; keep polling.
 
 ## Error handling
 
@@ -396,7 +410,7 @@ Key rules:
 | `already_downloaded` | Already fetched once | Run the scrape again (new taskId) |
 | `409 not_ready` | Data not ready yet | Keep polling |
 | `409 buffer_unavailable` | Buffer cleared by TTL race | Retry a few seconds later |
-| `429 too_many_concurrent_scrapes` | A previous task is still pending/processing | Free users have 1 concurrent window — wait for the running task to reach `ready`/`failed`, then retry. Closing the browser tab is NOT required |
+| `429 too_many_concurrent_scrapes` | A previous task is still pending/processing | Free users have 1 concurrent window — the page self-retries ~5 min; keep polling. Closing the browser tab is NOT required |
 | `402 insufficient_credits` | Credits exhausted | Signup grants 10M credits — almost never runs out; contact the platform |
 | CSV has empty `name` / `about` for a profile | LinkedIn needs login, or the profile is private | Ask the user to confirm they are logged into LinkedIn (Step 3 ③) |
 
@@ -414,7 +428,7 @@ The limit counts **running tasks**, not open windows:
 
 - **Use the extension-installed browser.** Never rely on the system default browser — it may not have the extension. The user chose which browser during installation; that browser must have the extension installed.
 - **Never re-implement the browser/process/polling logic inline.** The scripts are the single source of truth — that is what makes this work identically across AI clients and operating systems.
-- **Keep the tab open** until the task reaches `ready`. Closing the tab before the extension reports results means no server copy is produced.
+- **Keep the tab open until the task reaches `ready`.** The extension normally closes the scraper window and task page automatically 45–90 seconds after completion; do not close them manually before `ready`.
 - After downloading, show the user the CSV path and a preview so they trust the result.
 - **Say the account-risk line once per batch**, before the first scrape: this drives the user's real LinkedIn account, and bulk collection may violate LinkedIn's ToS — the user's account, the user's responsibility.
 - **The pre-task reminder (Step 1) exists because the user opted out of auto-detection.** It is the user's only signal that the browser is about to open. Never skip it.

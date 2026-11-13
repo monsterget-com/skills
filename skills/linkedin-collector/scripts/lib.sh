@@ -16,6 +16,10 @@ STATE_FILE="${MONSTERGET_STATE_FILE:-$STATE_DIR/state.json}"
 BASE_URL="${MONSTERGET_BASE_URL:-https://monsterget.com}"
 SITE_URL="${MONSTERGET_SITE_URL:-$BASE_URL}"
 POLLS="${MONSTERGET_POLLS:-12}"
+# 轮询总时长（秒）。Agent 任务可能因 429 排队（页面自愈最多 ~5min）+
+# 批量串联休息（LinkedIn 每 8~15 个档案 20~30s）+ 实际抓取，5min 远远不够。
+POLL_TIMEOUT_SEC="${MONSTERGET_POLL_TIMEOUT:-1200}"
+POLL_INTERVAL="${MONSTERGET_POLL_INTERVAL:-5}"
 
 # ---------------------------------------------------------------------------
 # OS detection — windows | macos | linux | unknown
@@ -156,6 +160,10 @@ _select_browser() {
   BROWSER="$1"
   BROWSER_FULLPATH="$(printf '%s' "$conf" | cut -d'|' -f2)"
   BROWSER_EXE="$(printf '%s' "$conf" | cut -d'|' -f3)"
+  # 本地测试覆盖：允许指向自定义 profile 的浏览器（例如已登录的 Debug Edge）。
+  # 正式用户不设置这两个变量 → 行为完全不变。
+  [ -n "${MONSTERGET_BROWSER_FULLPATH:-}" ] && BROWSER_FULLPATH="$MONSTERGET_BROWSER_FULLPATH"
+  [ -n "${MONSTERGET_BROWSER_EXE:-}" ] && BROWSER_EXE="$MONSTERGET_BROWSER_EXE"
 }
 
 # detect_browser — select the user's saved browser preference.
@@ -220,10 +228,23 @@ open_url() {
   case "$(detect_os)" in
     windows)
       if [ -n "$BROWSER_FULLPATH" ] && [ -f "$BROWSER_FULLPATH" ]; then
-        "$BROWSER_FULLPATH" "$url" >/dev/null 2>&1 && opened=0
+        if [ -n "${MONSTERGET_BROWSER_ARGS:-}" ]; then
+          # 本地测试覆盖：新 profile 的浏览器会常驻，必须后台启动，不能等它退出
+          # shellcheck disable=SC2086
+          "$BROWSER_FULLPATH" $MONSTERGET_BROWSER_ARGS "$url" >/dev/null 2>&1 &
+          opened=0
+        else
+          "$BROWSER_FULLPATH" "$url" >/dev/null 2>&1 && opened=0
+        fi
       fi
       if [ "$opened" != 0 ] && [ -n "$BROWSER_EXE" ] && command -v "$BROWSER_EXE" >/dev/null 2>&1; then
-        "$BROWSER_EXE" "$url" >/dev/null 2>&1 && opened=0
+        if [ -n "${MONSTERGET_BROWSER_ARGS:-}" ]; then
+          # shellcheck disable=SC2086
+          "$BROWSER_EXE" $MONSTERGET_BROWSER_ARGS "$url" >/dev/null 2>&1 &
+          opened=0
+        else
+          "$BROWSER_EXE" "$url" >/dev/null 2>&1 && opened=0
+        fi
       fi
       if [ "$opened" != 0 ] && command -v cmd >/dev/null 2>&1; then
         MSYS_NO_PATHCONV=1 cmd /c start "" "$url" >/dev/null 2>&1 && opened=0
@@ -322,4 +343,48 @@ urlencode() {
     esac
   done
   printf '%s' "$out"
+}
+
+# download_delivery <taskId> <dir> <filename> — 下载 agent CSV，校验 HTTP 状态与文件。
+# stdout: 保存后的绝对/相对路径
+# return: 0 ok / 3 empty file / 4 not_ready-or-buffer / 5 already_downloaded / 6 download failed
+download_delivery() {
+  local task_id="$1" dir="$2" filename="${3:-}"
+  [ -n "$filename" ] || filename="$task_id.csv"
+  local out="$dir/$filename"
+  local url="$BASE_URL/api/agent/delivery/task/$task_id/data"
+  local attempt=0 code
+  while [ "$attempt" -lt 4 ]; do
+    attempt=$((attempt + 1))
+    code="$(curl -sS --max-time 120 -o "$out" -w '%{http_code}' "$url" 2>/dev/null)" || code="000"
+    case "$code" in
+      200)
+        if [ ! -s "$out" ]; then
+          rm -f "$out"
+          return 3
+        fi
+        printf '%s' "$out"
+        return 0
+        ;;
+      409)
+        # ready 后仍可能遇到 buffer_unavailable/not_ready 的短竞态 → 重试几次
+        if [ "$attempt" -lt 4 ]; then
+          rm -f "$out"
+          sleep 3
+          continue
+        fi
+        rm -f "$out"
+        return 4
+        ;;
+      410)
+        rm -f "$out"
+        return 5
+        ;;
+      *)
+        rm -f "$out"
+        return 6
+        ;;
+    esac
+  done
+  return 6
 }

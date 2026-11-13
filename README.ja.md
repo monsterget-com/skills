@@ -1,6 +1,6 @@
 # 🛡️ MonsterGet Skills — AI のための BAN 対策 Web スクレイピング
 
-> **ブロックされるのは、もう終わり。あなた自身のブラウザから TikTok と LinkedIn を収集 —— すでにログイン済みのセッションをそのまま使います。AI が全自動、設定ゼロ、永久無料。**
+> **ブロックされるのは、もう終わり。あなた自身のブラウザから TikTok、X/Twitter、LinkedIn、Upwork を収集 —— すでにログイン済みのセッションをそのまま使います。AI が全自動、設定ゼロ、永久無料。**
 
 [English](README.md) · [简体中文](README.zh-CN.md) · **日本語** · [Español](README.es.md) · [Português](README.pt.md)
 
@@ -14,7 +14,7 @@
 
 ## ✨ これは何？
 
-**MonsterGet Skills** は、あらゆる AI アシスタントを TikTok と LinkedIn データの powerhouse に変えます —— アカウントを BAN されずに。
+**MonsterGet Skills** は、あらゆる AI アシスタントを TikTok、X/Twitter、LinkedIn、Upwork データの powerhouse に変えます —— アカウントを BAN されずに。
 
 Web スクレイピングには公然の秘密があります：**サーバーサイドのスクレイパーはブロックされます。** TikTok、Instagram、LinkedIn —— どれもヘッドレスブラウザ、データセンター IP、プロキシプールと戦っています。こちらが強化すれば、向こうはもっと強くブロックする。勝てない軍拡競争です。
 
@@ -92,12 +92,14 @@ MonsterGet はゲームを変えます：**収集はあなた自身のブラウ�
 
 ## 📦 利用可能な Skill
 
-| Skill | 機能 | 対応 |
-|-------|------|------|
-| [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | TikTok 動画検索、クリエイター発掘、ハッシュタグ収集、クリエイタープロフィールの CSV 出力 | TikTok |
-| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn プロフィールヘッダー + About の CSV 出力、類似ユーザーおすすめ、プロフィール一括取得 | LinkedIn |
+| Skill | 機能 | タイプ数 |
+|-------|------|----------|
+| [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | 動画検索、クリエイター発掘、ハッシュタグ、ユーザー動画/プロフィール、動画コメント・詳細 | 7 |
+| [🐦 x-collector](skills/x-collector/SKILL.md) | 検索フィード、ユーザー検索、プロフィール、ユーザー投稿、投稿詳細/コメント、ホームフィード | 7 |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn プロフィール + About、類似ユーザー、一括取得 | 2 |
+| [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Upwork 求人検索（URL / ページ数 / autoAll） | 1 |
 
-*対応プラットフォーム拡大予定（LinkedIn、Instagram、X/Twitter、YouTube…）。issue で投票してください。*
+**合計 17 タイプ**、すべて Agent API（`scrapers_api` v3、拡張 **1.8.0+**）経由。
 
 ## 🔧 インストール方法
 
@@ -105,7 +107,11 @@ MonsterGet はゲームを変えます：**収集はあなた自身のブラウ�
 
 > 💬 tiktok-collector スキルをインストールして。https://github.com/monsterget-com/skills
 
+> 💬 x-collector スキルをインストールして。https://github.com/monsterget-com/skills
+
 > 💬 linkedin-collector スキルをインストールして。https://github.com/monsterget-com/skills
+
+> 💬 upwork-collector スキルをインストールして。https://github.com/monsterget-com/skills
 
 AI が自動でリポジトリをクローンし、ランタイムをインストールして、自身を設定します。
 
@@ -117,9 +123,9 @@ AI が自動でリポジトリをクローンし、ランタイムをインス�
 
 ランタイムが一箇所（`~/.monsterget/skills/`）に置かれるため、**あなたのすべての AI クライアントがそれを共有します**。一度インストールすれば、Claude Code / Codex / Cursor / Cline のどれからでも使えます。
 
-**手動でインストールしたい？** [skills/tiktok-collector/INSTALL.md](skills/tiktok-collector/INSTALL.md) と [skills/linkedin-collector/INSTALL.md](skills/linkedin-collector/INSTALL.md) を参照してください（手動手順とクライアント別のポインタ位置）。
+**手動でインストールしたい？** 各 skill フォルダの `INSTALL.md` を参照してください（手動手順とクライアント別のポインタ位置）。
 
-**シェルを使えない環境**（ブラウザ版 ChatGPT など）？ [`skills/tiktok-collector/SKILL.md`](skills/tiktok-collector/SKILL.md) または [`skills/linkedin-collector/SKILL.md`](skills/linkedin-collector/SKILL.md) の内容をカスタム指示に貼り付け、AI の案内に従ってください。
+**シェルを使えない環境**（ブラウザ版 ChatGPT など）？ 選んだ `skills/<skill>/SKILL.md` の内容をカスタム指示に貼り付け、AI の案内に従ってください。
 
 ## 🧠 アーキテクチャ（実際に起きていること）
 

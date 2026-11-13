@@ -1,6 +1,6 @@
 # 🛡️ MonsterGet Skills — Web Scraping Anti-Bloqueo para IA
 
-> **Deja de ser bloqueado. Extrae datos de TikTok y LinkedIn desde tu navegador real — tu sesión ya iniciada. Automatizado por IA, cero configuración, permanentemente gratis.**
+> **Deja de ser bloqueado. Extrae datos de TikTok, X/Twitter, LinkedIn y Upwork desde tu navegador real — tu sesión ya iniciada. Automatizado por IA, cero configuración, permanentemente gratis.**
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **Español** · [Português](README.pt.md)
 
@@ -14,7 +14,7 @@
 
 ## ✨ ¿Qué es?
 
-**MonsterGet Skills** convierte a cualquier asistente de IA en un motor de datos de TikTok y LinkedIn — sin que tus cuentas sean bloqueadas.
+**MonsterGet Skills** convierte a cualquier asistente de IA en un motor de datos de TikTok, X/Twitter, LinkedIn y Upwork — sin que tus cuentas sean bloqueadas.
 
 Aquí está el secreto a voces del web scraping: **los scrapers del lado del servidor son bloqueados.** TikTok, Instagram, LinkedIn — todos luchan contra navegadores headless, IPs de datacenter y pools de proxies. Tú refuerzas, ellos bloquean más fuerte. Es una carrera armamentista que pierdes.
 
@@ -92,12 +92,14 @@ Después de eso, **cada extracción es instantánea.** Nunca más configuración
 
 ## 📦 Skills disponibles
 
-| Skill | Qué hace | Plataformas |
-|-------|----------|-------------|
-| [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | Búsqueda de videos TikTok, descubrimiento de creadores, colección de hashtags, perfiles de creador a CSV | TikTok |
-| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Cabecera de perfil de LinkedIn + exportación de About, recomendaciones de personas similares, extracción por lotes de perfiles a CSV | LinkedIn |
+| Skill | Qué hace | Tipos |
+|-------|----------|-------|
+| [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | Búsqueda de videos, creadores, hashtags, videos/perfiles de creador, comentarios y detalles de video | 7 |
+| [🐦 x-collector](skills/x-collector/SKILL.md) | Feeds de búsqueda, búsqueda de usuarios, perfiles, tweets de usuario, detalles/comentarios, feed de inicio | 7 |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Perfil + About, personas similares, extracción por lotes | 2 |
+| [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Búsqueda de empleos de Upwork (URL / páginas / autoAll) | 1 |
 
-*Más plataformas próximamente (LinkedIn, Instagram, X/Twitter, YouTube…). Abre un issue para votar.*
+**17 tipos en total**, todos mediante la Agent API (`scrapers_api` v3, extensión **1.8.0+**).
 
 ## 🔧 Cómo instalar
 
@@ -105,7 +107,11 @@ Después de eso, **cada extracción es instantánea.** Nunca más configuración
 
 > 💬 Instala el skill tiktok-collector desde https://github.com/monsterget-com/skills
 
+> 💬 Instala el skill x-collector desde https://github.com/monsterget-com/skills
+
 > 💬 Instala el skill linkedin-collector desde https://github.com/monsterget-com/skills
+
+> 💬 Instala el skill upwork-collector desde https://github.com/monsterget-com/skills
 
 La IA clonará el repositorio, instalará el runtime y se configurará a sí misma.
 
@@ -117,9 +123,9 @@ La IA clonará el repositorio, instalará el runtime y se configurará a sí mis
 
 Como el runtime vive en una ubicación fija (`~/.monsterget/skills/`), **todos tus clientes de IA lo comparten**. Instálalo una vez y úsalo desde Claude Code, Codex, Cursor, Cline — lo que tengas.
 
-**¿Prefieres hacerlo a mano?** Consulta [skills/tiktok-collector/INSTALL.md](skills/tiktok-collector/INSTALL.md) y [skills/linkedin-collector/INSTALL.md](skills/linkedin-collector/INSTALL.md) para los pasos manuales y las ubicaciones de puntero por cliente.
+**¿Prefieres hacerlo a mano?** Consulta el `INSTALL.md` dentro de cada skill para los pasos manuales y las ubicaciones de puntero por cliente.
 
-**¿Sin acceso a shell** (solo chat web como ChatGPT)? Pega el contenido de [`skills/tiktok-collector/SKILL.md`](skills/tiktok-collector/SKILL.md) o [`skills/linkedin-collector/SKILL.md`](skills/linkedin-collector/SKILL.md) en tus instrucciones personalizadas — la IA te guiará manualmente.
+**¿Sin acceso a shell** (solo chat web como ChatGPT)? Pega el contenido de `skills/<skill>/SKILL.md` en tus instrucciones personalizadas — la IA te guiará manualmente.
 
 ## 🧠 Arquitectura (lo que realmente sucede)
 
