@@ -42,6 +42,11 @@ RUN_SCRAPE="$(bash "$SKILL_DIR/scripts/resolve-runtime.sh" tiktok-collector)"
 bash "$RUN_SCRAPE" /tiktok-search-video query "..." 50
 ```
 
+**Data volume:** every business skill defaults to **Standard** (1,000–2,000
+analyzed items), with Quick/Deep tiers. Read
+[DATA-STANDARDS.md](DATA-STANDARDS.md) before planning a scrape; never silently
+run a demo-sized sample for a real report.
+
 v2 is on the `v2` branch until the first design-partner cases pass.
 
 ## Installing a skill

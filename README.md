@@ -138,6 +138,10 @@ Collectors get data. Business skills turn data into decisions.
 Start with `monsterget-context` → `monsterget-business` → the chosen business skill.
 See [CATALOG.md](CATALOG.md) for the full catalog and routing table.
 
+**Data volume:** every business skill defaults to **Standard** (1,000–2,000
+analyzed items), with Quick/Deep tiers. See [DATA-STANDARDS.md](DATA-STANDARDS.md)
+for per-skill quotas, collector caps, saturation and confidence rules.
+
 > v2 is on the `v2` branch until the first 3 design-partner cases pass. Install
 > from `main` for collectors today; business skills are a preview.
 

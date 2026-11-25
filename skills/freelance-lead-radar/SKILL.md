@@ -65,6 +65,24 @@ Do not use when:
 
 ## 3. Data plan
 
+### 3.1 Default tier: Standard
+
+See [DATA-STANDARDS.md](../../DATA-STANDARDS.md). Default to **Standard**.
+
+| Tier | Queries | Unique jobs | Proposals drafted | Scrapes |
+|---|---:|---:|---:|---:|
+| Quick | 1–2 | 30–50 | 3 | 2–3 |
+| **Standard** | 3–5 | 100–200 | 10 | 5–8 |
+| Deep | 5–8 | 300–500 | 10–20 | 10–15 |
+
+**Minimum for a report:** 50 unique jobs posted in the last 14 days.
+Fewer → label `Low` confidence.
+
+**Saturation:** stop when 2 consecutive pages add < 5% new jobs with
+`fit_score >= 50`. If not saturated by the tier cap, say so.
+
+### 3.2 Per-source plan
+
 | Source | Scraper | Input | Count | Why |
 |---|---|---|---:|---|
 | Upwork | `upwork_search_jobs` | 3–5 search URLs | 10–50/page | main opportunity pool |
@@ -77,6 +95,8 @@ Rules:
 - Start with 1–3 pages per query; expand only if the pool is thin.
 - Prefer jobs posted in the last 14 days.
 - If a search returns 0 rows, say so and try a broader query.
+- If a collector caps below the target, add another query angle; do not exceed
+  the collector's max.
 
 ## 4. Preflight
 
@@ -207,7 +227,8 @@ See `references/scoring.md` for the full rubric. Key signals:
 
 ## 8. Quality gates
 
-- At least 30 jobs analyzed, or label confidence low.
+- Meets the chosen tier: Quick 30–50; Standard 100–200; Deep 300–500 unique jobs.
+- At minimum: 50 unique jobs posted in the last 14 days. Below → confidence Low.
 - Every job in the table has a source URL.
 - Every proposal draft quotes a real detail from the JD.
 - No invented experience, metrics, or clients.

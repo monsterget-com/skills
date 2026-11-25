@@ -68,19 +68,39 @@ using the platform collectors, then mine their comments.
 
 ## 3. Data plan
 
+### 3.1 Default tier: Standard
+
+See [DATA-STANDARDS.md](../../DATA-STANDARDS.md). Default to **Standard** unless
+the user asks for Quick (demo) or Deep (high-stakes).
+
+| Tier | Posts/videos | Comments | App reviews | Total analyzed | Scrapes |
+|---|---:|---:|---:|---:|---:|
+| Quick | 3–5 | 100–200 | 100–200 | 200–400 | 3–5 |
+| **Standard** | 5–8 | 500–1,000 | 500–1,000 | **1,000–2,000** | 8–12 |
+| Deep | 8–12 | 1,500–2,000 | 1,500–2,000 | 3,000–4,000 | 15–20 |
+
+**Minimum for a report:** 300 comments **or** 500 reviews, from **>= 2 sources**.
+Below that → label `Low` confidence and say "directional".
+
+**Saturation:** collect in batches of ~100 comments. Stop when 2 consecutive
+batches add < 10% new themes. If not saturated by the tier cap, say so.
+
+### 3.2 Per-source plan
+
 | Source | Scraper | Query / input | Count | Why |
 |---|---|---|---:|---|
-| TikTok comments | `tiktok_comments` | 3–5 top videos by keyword | 100/video | pains, objections, buying intent |
-| X comments | `x_tweet_comments` | 3–5 top posts by keyword | 100/post | debate, competitor mentions |
-| App Store | `app_store_reviews` | app URL/ID, 2 countries | 500/country | rating drivers, version issues |
-| Google Play | `google_play_reviews` | package, 2 languages | 500/language | Android differences |
+| TikTok comments | `tiktok_comments` | 5–8 top videos by keyword | 100–200/video | pains, objections, buying intent |
+| X comments | `x_tweet_comments` | 3–5 top posts by keyword | 100–200/post | debate, competitor mentions |
+| App Store | `app_store_reviews` | app URL/ID, 2 countries | 500–1,000/country | rating drivers, version issues |
+| Google Play | `google_play_reviews` | package, 2 languages | 500–1,000/language | Android differences |
 
 Rules:
 
 - Count is **per video/post** for comments and **per country/language** for reviews.
-- Start with 1 page per source; expand only if themes are still changing.
+- If one query returns fewer than the target, use another query angle or page.
+  Do not pretend the target was met.
 - If a source returns 0 rows, say so; do not silently drop it.
-- Cap total at ~2,000 rows unless the user asks for more.
+- Cap Standard at ~2,000 items; Deep at ~4,000 unless the user asks for more.
 
 ## 4. Preflight
 
@@ -223,7 +243,10 @@ Drafts only. Do not post, send, or publish.
 
 ## 7. Quality gates
 
-- At least 100 comments OR 200 reviews total.
+- Meets the chosen tier: Quick 200–400; Standard 1,000–2,000; Deep 3,000–4,000
+  analyzed items.
+- At minimum: 300 comments or 500 reviews, from >= 2 sources.
+- If below the minimum, confidence = Low and the report says "directional".
 - Every theme has >= 3 quotes and >= 2 sources.
 - Quotes are verbatim and linked.
 - No demographic claims.

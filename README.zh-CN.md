@@ -134,6 +134,10 @@ AI 负责全部编排：
 使用顺序：`monsterget-context` → `monsterget-business` → 具体业务 Skill。
 完整目录和路由表见 [CATALOG.md](CATALOG.md)。
 
+**数据量标准：** 所有业务 Skill 默认 **Standard**（1,000–2,000 条有效数据），
+另有 Quick / Deep 两档。每个 Skill 的配额、采集器上限、饱和判断和置信度规则见
+[DATA-STANDARDS.md](DATA-STANDARDS.md)。
+
 > v2 先放在 `v2` 分支，首批 3 个设计伙伴跑通后再合 main。采集器今天就可以从 `main` 安装；业务 Skill 是预览。
 
 ## 🔧 安装方法

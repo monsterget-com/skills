@@ -4,6 +4,21 @@
 >
 > 规则：**先读 `monsterget-context`，再用 `monsterget-business` 选 Skill，最后执行具体 Skill。**
 
+## 0. Data volume standard
+
+Every business skill defaults to **Standard** unless the user asks for Quick
+(demo) or Deep (high-stakes):
+
+| Tier | Use when | Typical total |
+|---|---|---|
+| Quick | demo / smoke test | 200–400 items |
+| **Standard** | normal client report | **1,000–2,000 items** |
+| Deep | enterprise / investment | 3,000–4,000 items |
+
+See [DATA-STANDARDS.md](DATA-STANDARDS.md) for per-skill quotas, collector caps,
+counting rules, saturation and confidence. A report must state how many unique
+items it analyzed, from which sources, in which date range, and why that is enough.
+
 ## 0. Start here
 
 ```text
