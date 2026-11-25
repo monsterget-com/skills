@@ -120,6 +120,22 @@ AI 负责全部编排：
 
 **共 22 个爬虫**，统一走 Agent API（`scrapers_api` v4，扩展 **1.8.0+**；App Store / Google Play 评论需 **1.12.0+**）。
 
+### 🧠 业务 Skill（v2 预览）
+
+采集器负责拿数据，业务 Skill 负责把数据变成决策。
+
+| Skill | 作用 | 状态 |
+|---|---|---|
+| [monsterget-context](skills/monsterget-context/SKILL.md) | 品牌/产品/ICP/语气/禁区；所有业务 Skill 先读它 | 🚧 v2 |
+| [monsterget-business](skills/monsterget-business/SKILL.md) | 根据业务问题选对 Skill，估算数据量/时间 | 🚧 v2 |
+| [voc-miner](skills/voc-miner/SKILL.md) | 评论 + 应用商店评论 → 用户之声报告 | 🚧 v2 |
+| [freelance-lead-radar](skills/freelance-lead-radar/SKILL.md) | Upwork 岗位 → 机会榜单 + proposal 草稿 + 报价建议 | 🚧 v2 |
+
+使用顺序：`monsterget-context` → `monsterget-business` → 具体业务 Skill。
+完整目录和路由表见 [CATALOG.md](CATALOG.md)。
+
+> v2 先放在 `v2` 分支，首批 3 个设计伙伴跑通后再合 main。采集器今天就可以从 `main` 安装；业务 Skill 是预览。
+
 ## 🔧 安装方法
 
 **不用记任何命令。** 打开你的 AI 助手（Claude Code / Codex / Cursor / Cline…），在对话框里发：
@@ -133,6 +149,14 @@ AI 负责全部编排：
 > 💬 安装 skill upwork-collector，https://github.com/monsterget-com/skills
 
 > 💬 安装 skill app-reviews-collector，https://github.com/monsterget-com/skills
+>
+> 💬 安装 skill monsterget-context，https://github.com/monsterget-com/skills
+>
+> 💬 安装 skill monsterget-business，https://github.com/monsterget-com/skills
+>
+> 💬 安装 skill voc-miner，https://github.com/monsterget-com/skills
+>
+> 💬 安装 skill freelance-lead-radar，https://github.com/monsterget-com/skills
 
 AI 会自动克隆仓库，安装运行时，并配置自身。
 
