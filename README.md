@@ -124,6 +124,23 @@ After that, **every scrape is instant.** No more setup. Ever.
 extension **1.8.0+**; **1.12.0+** for App Store / Google Play reviews). More platforms will be added as the platform exposes
 them to the Agent API.
 
+### 🧠 Business Skills (v2 preview)
+
+Collectors get data. Business skills turn data into decisions.
+
+| Skill | What it does | Status |
+|---|---|---|
+| [monsterget-context](skills/monsterget-context/SKILL.md) | Brand / product / ICP / voice / guardrails; every business skill reads it first | 🚧 v2 |
+| [monsterget-business](skills/monsterget-business/SKILL.md) | Routes a business question to the right skill, estimates data volume/time | 🚧 v2 |
+| [voc-miner](skills/voc-miner/SKILL.md) | Voice-of-customer report from TikTok/X comments + App Store/Play reviews | 🚧 v2 |
+| [freelance-lead-radar](skills/freelance-lead-radar/SKILL.md) | Ranked Upwork leads + proposal drafts + pricing guidance | 🚧 v2 |
+
+Start with `monsterget-context` → `monsterget-business` → the chosen business skill.
+See [CATALOG.md](CATALOG.md) for the full catalog and routing table.
+
+> v2 is on the `v2` branch until the first 3 design-partner cases pass. Install
+> from `main` for collectors today; business skills are a preview.
+
 ## 🔧 How to Install
 
 **No commands to memorize.** Open your AI assistant (Claude Code / Codex / Cursor / Cline…), and send this in the chat:

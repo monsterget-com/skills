@@ -17,6 +17,33 @@ scraping, no proxies, no Python packages.
 Together they cover the 22 scrapers exposed by the platform Agent API
 (`scrapers_api` version 4; extension **1.8.0+**, **1.12.0+** for app-store reviews).
 
+### Business skills (v2 preview)
+
+Collectors get data; business skills turn data into a decision. The flow is:
+
+```text
+monsterget-context  ->  monsterget-business  ->  voc-miner / freelance-lead-radar / ...
+```
+
+| Path | Skill | What it does |
+|------|-------|--------------|
+| [skills/monsterget-context/](skills/monsterget-context/) | Business context | Brand, product, ICP, voice, guardrails -> `.agents/monsterget-context.md` |
+| [skills/monsterget-business/](skills/monsterget-business/) | Router | Picks the right business skill and estimates data/time |
+| [skills/voc-miner/](skills/voc-miner/) | VOC Miner | TikTok/X comments + App Store/Play reviews -> evidence-backed VOC report |
+| [skills/freelance-lead-radar/](skills/freelance-lead-radar/) | Freelance Lead Radar | Upwork jobs -> ranked leads + proposal drafts |
+
+Business skills do **not** duplicate the collector runtime. Each business skill
+ships `scripts/resolve-runtime.sh` and uses it to find the collector:
+
+```bash
+SKILL_DIR="${MONSTERGET_HOME:-$HOME/.monsterget}/skills/voc-miner"
+[ -d "$SKILL_DIR" ] || SKILL_DIR=".agents/skills/voc-miner"
+RUN_SCRAPE="$(bash "$SKILL_DIR/scripts/resolve-runtime.sh" tiktok-collector)"
+bash "$RUN_SCRAPE" /tiktok-search-video query "..." 50
+```
+
+v2 is on the `v2` branch until the first design-partner cases pass.
+
 ## Installing a skill
 
 Say in your chat:
@@ -30,6 +57,14 @@ Say in your chat:
 > Install the upwork-collector skill from https://github.com/monsterget-com/skills
 >
 > Install the app-reviews-collector skill from https://github.com/monsterget-com/skills
+>
+> Install the monsterget-context skill from https://github.com/monsterget-com/skills
+>
+> Install the monsterget-business skill from https://github.com/monsterget-com/skills
+>
+> Install the voc-miner skill from https://github.com/monsterget-com/skills
+>
+> Install the freelance-lead-radar skill from https://github.com/monsterget-com/skills
 
 ### Self-install contract (for the agent receiving that instruction)
 
@@ -44,10 +79,18 @@ Say in your chat:
 
    Skills live side-by-side: `~/.monsterget/skills/tiktok-collector/`,
    `~/.monsterget/skills/x-collector/`, `~/.monsterget/skills/linkedin-collector/`,
-   `~/.monsterget/skills/upwork-collector/`, `~/.monsterget/skills/app-reviews-collector/`.
+   `~/.monsterget/skills/upwork-collector/`, `~/.monsterget/skills/app-reviews-collector/`,
+   plus business skills under `~/.monsterget/skills/monsterget-context/`,
+   `~/.monsterget/skills/monsterget-business/`, `~/.monsterget/skills/voc-miner/`,
+   `~/.monsterget/skills/freelance-lead-radar/`.
    Each is self-contained. The shared
    `~/.monsterget/state.json` (browser choice, download dir) and
    `~/.monsterget/version.json` (scrapers API version) carry cross-skill settings.
+
+   **Business skill dependencies:** install the collectors it needs first
+   (`voc-miner` -> `tiktok-collector`, `x-collector`, `app-reviews-collector`;
+   `freelance-lead-radar` -> `upwork-collector`). Business skills find the
+   collector runtime with `scripts/resolve-runtime.sh`.
 
 3. Add a one-line pointer in your own custom-instructions / rules file:
 
@@ -57,6 +100,8 @@ Say in your chat:
    For LinkedIn data, read ~/.monsterget/skills/linkedin-collector/SKILL.md and run its scripts.
    For Upwork data, read ~/.monsterget/skills/upwork-collector/SKILL.md and run its scripts.
    For App Store / Google Play reviews, read ~/.monsterget/skills/app-reviews-collector/SKILL.md and run its scripts.
+   For business context, read ~/.monsterget/skills/monsterget-context/SKILL.md first.
+   For business research, read ~/.monsterget/skills/monsterget-business/SKILL.md and route to the right skill.
    ```
 
 4. Read the requested skill's `SKILL.md` (or `AGENTS.md` for non-Claude clients)

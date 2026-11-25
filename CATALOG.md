@@ -44,14 +44,14 @@
 
 | Skill | 业务问题 | 依赖 | 状态 |
 |---|---|---|---|
-| `voc-miner` | 用户抱怨什么、想要什么、为什么流失 | TikTok/X 评论 + App 评论 | 🚧 首发 |
-| `freelance-lead-radar` | 今天该投哪些 Upwork 单、怎么写 proposal | Upwork | 🚧 首发 |
+| `voc-miner` | 用户抱怨什么、想要什么、为什么流失 | TikTok/X 评论 + App 评论 | ✅ v2.0 |
+| `freelance-lead-radar` | 今天该投哪些 Upwork 单、怎么写 proposal | Upwork | ✅ v2.0 |
 | `creator-due-diligence` | 该签谁、该投谁、有没有风险 | TikTok/X | 📋 第二批 |
 | `competitor-teardown` | 竞品什么内容有效、我们该测什么 | TikTok/X | 📋 第二批 |
 | `creator-growth-audit` | 我的账号为什么涨不动 | TikTok/X | 📋 第二批 |
-| `talent-map` | 目标公司在招谁、人才在哪 | LinkedIn | 📋 第三批 |
-| `aso-pulse` | 评分为什么掉、版本有没有回归 | App Store/Play | 📋 第三批 |
-| `job-fit-coach` | 这个岗位我配不配、怎么准备 | LinkedIn | 📋 第三批 |
+| `aso-pulse` | 评分为什么掉、版本有没有回归 | App Store/Play | 📋 第二批（数据已就绪） |
+| `talent-map` | 目标公司在招谁、人才在哪 | LinkedIn | 📋 第二批（公司员工 devOnly） |
+| `job-fit-coach` | 这个岗位我配不配、怎么准备 | LinkedIn | 📋 第二批（岗位详情已就绪） |
 
 ## 5. 路由表
 
@@ -83,6 +83,7 @@ AI 会把 `skills/<skill>/.` 复制到 `~/.monsterget/skills/<skill>/`。
 npx skills add monsterget-com/skills --skill monsterget-context
 npx skills add monsterget-com/skills --skill monsterget-business
 npx skills add monsterget-com/skills --skill voc-miner
+npx skills add monsterget-com/skills --skill freelance-lead-radar
 ```
 
 ### Plugin（Claude Code / Codex）

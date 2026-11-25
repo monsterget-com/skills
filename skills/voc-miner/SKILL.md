@@ -86,11 +86,15 @@ Rules:
 
 1. Read `.agents/monsterget-context.md`. If missing, run `monsterget-context`
    or use a lightweight context.
-2. Check which collectors are installed:
+2. Resolve this skill's folder and the collector runtime:
    ```bash
-   bash scripts/resolve-runtime.sh tiktok-collector
-   bash scripts/resolve-runtime.sh x-collector
-   bash scripts/resolve-runtime.sh app-reviews-collector
+   SKILL_DIR="${MONSTERGET_HOME:-$HOME/.monsterget}/skills/voc-miner"
+   [ -d "$SKILL_DIR" ] || SKILL_DIR=".agents/skills/voc-miner"
+   RESOLVER="$SKILL_DIR/scripts/resolve-runtime.sh"
+
+   bash "$RESOLVER" tiktok-collector
+   bash "$RESOLVER" x-collector
+   bash "$RESOLVER" app-reviews-collector
    ```
 3. Tell the user which sites they must be logged into (TikTok/X). App reviews
    need no store login.
@@ -101,9 +105,13 @@ Rules:
 ### 5.1 Collect
 
 ```bash
-TIKTOK="$(bash scripts/resolve-runtime.sh tiktok-collector)"
-X="$(bash scripts/resolve-runtime.sh x-collector)"
-REVIEWS="$(bash scripts/resolve-runtime.sh app-reviews-collector)"
+SKILL_DIR="${MONSTERGET_HOME:-$HOME/.monsterget}/skills/voc-miner"
+[ -d "$SKILL_DIR" ] || SKILL_DIR=".agents/skills/voc-miner"
+RESOLVER="$SKILL_DIR/scripts/resolve-runtime.sh"
+
+TIKTOK="$(bash "$RESOLVER" tiktok-collector)"
+X="$(bash "$RESOLVER" x-collector)"
+REVIEWS="$(bash "$RESOLVER" app-reviews-collector)"
 
 # TikTok comments
 bash "$TIKTOK" /tiktok-comments value "<video-url>" 100 include_replies=true max_replies=20
@@ -118,18 +126,19 @@ bash "$REVIEWS" /app-store-reviews value "<app-url>" 500 countries=us,cn
 bash "$REVIEWS" /google-play-reviews value "<package>" 500 languages=en,zh-CN
 ```
 
-### 5.2 Normalize
+### 5.2 Normalize + compute deterministic stats
+
+If the VOC analyzer is installed in this skill's `scripts/` folder:
 
 ```bash
-python core/scripts/normalize.py --type comment --input <csv...> --out comments.json
-python core/scripts/normalize.py --type review  --input <csv...> --out reviews.json
+python "$SKILL_DIR/scripts/analyze.py" --type comment --input <csv...> --out comments.json
+python "$SKILL_DIR/scripts/analyze.py" --type review  --input <csv...> --out reviews.json
+python "$SKILL_DIR/scripts/analyze.py" --preset voc --comments comments.json --reviews reviews.json --out stats.json
 ```
 
-### 5.3 Compute deterministic stats
-
-```bash
-python core/scripts/stats.py --preset voc --comments comments.json --reviews reviews.json --out stats.json
-```
+If the analyzer is not installed yet, compute the same fields with the formulas
+in `references/taxonomy.md` and write `stats.json` yourself. **Do not do arithmetic
+in your head without showing the inputs and formula.**
 
 The stats file must include:
 
