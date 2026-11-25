@@ -1,6 +1,6 @@
 # 🛡️ MonsterGet Skills — Anti-Ban Web Scraping for AI
 
-> **Stop getting blocked. Scrape TikTok, X/Twitter, LinkedIn & Upwork through your real browser — your existing logged-in session. AI-automated, zero-setup, permanently free.**
+> **Stop getting blocked. Scrape TikTok, X/Twitter, LinkedIn, Upwork, the App Store & Google Play through your real browser — your existing session. AI-automated, zero-setup, permanently free.**
 
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Português](README.pt.md)
 
@@ -14,7 +14,7 @@
 
 ## ✨ What is it?
 
-**MonsterGet Skills** turn any AI assistant into a multi-platform data powerhouse — TikTok, X/Twitter, LinkedIn and Upwork — without your accounts getting banned.
+**MonsterGet Skills** turn any AI assistant into a multi-platform data powerhouse — TikTok, X/Twitter, LinkedIn, Upwork, the App Store and Google Play — without your accounts getting banned.
 
 Here's the dirty secret of web scraping: **server-side scrapers get blocked.** TikTok, Instagram, LinkedIn — they all fight headless browsers, datacenter IPs, and proxy pools. You fight back, they block harder. It's an arms race you lose.
 
@@ -37,8 +37,12 @@ MonsterGet flips the game: **the scrape runs inside your own browser**, in your 
 | 📊 **Bulk profile pull** | 50+ usernames at once → one CSV, aggregated |
 | 💼 **LinkedIn profiles** | Profile header + full About text → one row per profile |
 | 🧑‍💼 **LinkedIn similar people** | "More profiles for you" recommendations → name, headline, connection |
+| 🔎 **LinkedIn jobs** | Job search by URL, 25 per page, multi-page / auto-all |
+| 👥 **LinkedIn people** | People search by keyword, location, industry → name, headline, profile URL |
 | 🐦 **X/Twitter research** | Search feeds, profiles, user tweets, tweet details, comments, home feed |
 | 💼 **Upwork jobs** | Job search results by URL, one or many pages, auto-all |
+| 🍎 **App Store reviews** | iOS reviews by app + country → rating, title, text, developer replies |
+| 🤖 **Google Play reviews** | Android reviews by app + language → rating, text, version, helpful votes |
 
 All results are clean CSV files — open in Excel, import into your analysis, or feed back to your AI.
 
@@ -112,11 +116,12 @@ After that, **every scrape is instant.** No more setup. Ever.
 |-------|--------------|-------|
 | [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | Video search, creator discovery, hashtags, creator videos/profiles, video comments and details | 7 |
 | [🐦 x-collector](skills/x-collector/SKILL.md) | Search feeds, user search, profiles, user tweets, tweet details, tweet comments, home feed | 7 |
-| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Profile header + About, similar-people recommendations, batch pulls | 2 |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Profile header + About, similar-people recommendations, batch pulls, job search, people search | 4 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Job search by URL, one/many pages, auto-all | 1 |
+| [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | iOS App Store + Android Google Play reviews, multi-country/language | 2 |
 
-**17 scrapers total**, all through the same Agent API (`scrapers_api` v3,
-extension **1.8.0+**). More platforms will be added as the platform exposes
+**21 scrapers total**, all through the same Agent API (`scrapers_api` v4,
+extension **1.8.0+**; **1.12.0+** for App Store / Google Play reviews). More platforms will be added as the platform exposes
 them to the Agent API.
 
 ## 🔧 How to Install
@@ -130,6 +135,8 @@ them to the Agent API.
 > 💬 Install the linkedin-collector skill from https://github.com/monsterget-com/skills
 
 > 💬 Install the upwork-collector skill from https://github.com/monsterget-com/skills
+
+> 💬 Install the app-reviews-collector skill from https://github.com/monsterget-com/skills
 
 That's it. The AI clones the repo, installs the runtime, and wires itself up.
 
@@ -156,7 +163,7 @@ Because the runtime lives in one shared location (`~/.monsterget/skills/`), **ev
 ```
 AI ──▶ generates taskId + opens browser URL
          │
-Your Browser ──▶ MonsterGet extension runs the scrape in your TikTok/X/LinkedIn/Upwork tab
+Your Browser ──▶ MonsterGet extension runs the scrape in your TikTok/X/LinkedIn/Upwork/app-store tab
                    │
                 Rows stream to server buffer ──▶ AI polls & downloads CSV
 ```

@@ -1,12 +1,13 @@
 ---
 name: monsterget-linkedin-collector
 description: >-
-  Collect LinkedIn data (profile main modules, similar-profile recommendations)
-  through the user's own real browser — anti-blocking, zero-setup, permanently free.
-  Requires the free MonsterGet browser extension (one-time install), then
-  the AI orchestrates repeatable collections. Supports single-profile extraction,
-  batch profile pulls, and similar-people recommendations. Works with Claude Code,
-  Codex, Cursor, Windsurf, Cline, ChatGPT.
+  Collect LinkedIn data (profiles, similar-profile recommendations, job search,
+  people search) through the user's own real browser — anti-blocking, zero-setup,
+  permanently free. Requires the free MonsterGet browser extension (one-time
+  install), then the AI orchestrates repeatable collections. Supports
+  single/batch profile extraction, similar-people recommendations, multi-page
+  job search, and people search by keyword/location/industry. Works with Claude
+  Code, Codex, Cursor, Windsurf, Cline, ChatGPT.
 ---
 
 # LinkedIn Collector
@@ -16,7 +17,7 @@ description: >-
 
 ## What is this?
 
-A skill that lets **any AI assistant** (Claude Code, WorkBuddy, Codex, Cursor, Windsurf, Cline, ChatGPT…) scrape LinkedIn data — profile header + About text, or the "More profiles for you" recommendation list — and return it as a CSV. No Python packages, no headless configuration, no credential management. The AI orchestrates: it generates a task ID, opens a URL in the **user's own browser**, and downloads the result.
+A skill that lets **any AI assistant** (Claude Code, WorkBuddy, Codex, Cursor, Windsurf, Cline, ChatGPT…) scrape LinkedIn data — a profile's full detail, the "More profiles for you" recommendation list, job search results, or people search results — and return it as a CSV. No Python packages, no headless configuration, no credential management. The AI orchestrates: it generates a task ID, opens a URL in the **user's own browser**, and downloads the result.
 
 **Why a browser + extension?** The actual scrape runs inside the user's real LinkedIn session (logged in, with the [MonsterGet](https://monsterget.com) browser extension installed). That is what keeps accounts anti-ban safe. There is no server-side LinkedIn scraping — the data is collected right where the user is already logged in.
 
@@ -182,8 +183,11 @@ Each scraper contains all the info needed to build the scrape URL:
    - `linkedin_profile_main`: one profile per URL; `count` does not change the row. Omit it, or pass `1`.
    - `linkedin_more_profiles`: the popup renders the full list (usually 20+). Pass **`count=50`** (the platform max) so nothing is truncated. Omitting `count` makes the page default to **30** — that can cut a long list.
    - For batch `profileUrls`, `count` is **per profile**, not the number of profiles. Batch size is the length of the `profileUrls` list.
+   - `linkedin_search_jobs`: each page is **25 jobs**; `count` is fixed at `25` (pass `25` or omit it). Use options `page=<start page>` and `pages=<how many pages>`; `pages=0` means **auto-all** (keep paginating until LinkedIn runs out).
+   - `linkedin_search_people`: `count` is **per page** (default `10`, max `10`). Use options `page`, `pages` (1–50), and optionally `geo_urn` / `industry` numeric IDs.
 5. Profile accepts a full URL (`https://www.linkedin.com/in/username`) or a bare slug (`username`) — the server normalizes.
 6. **Batch**: multiple profiles are passed as `profileUrls` (comma-separated) — see "Batch profile pulls" below.
+7. **Job search takes a LinkedIn search URL**, not a keyword. Build it in the browser (LinkedIn → Jobs → set keyword/location/filters) and copy the address bar. People search takes a **keyword** plus optional numeric location/industry IDs.
 
 ### Current LinkedIn scraper types (reference — the AI fetches live data)
 
@@ -191,6 +195,8 @@ Each scraper contains all the info needed to build the scrape URL:
 |------|----------|-------|---------|
 | `linkedin_profile_main` | `/linkedin-profile-main` | `profileUrl` | Profile header card (name, headline, location, connection, followers, avatar) + full About text, one row per profile |
 | `linkedin_more_profiles` | `/linkedin-more-profiles` | `profileUrl` | "More profiles for you" recommendation list (name, headline, connection, avatar, profile URL) for each recommended user |
+| `linkedin_search_jobs` | `/linkedin-search-jobs` | `value` (search URL) | Job search results: title, company, location, salary, post time, job URL — 25 per page, multi-page |
+| `linkedin_search_people` | `/linkedin-search-people` | `value` (keywords) | People search results: name, headline, location, connection degree, profile URL — multi-page |
 
 ## The flow
 
@@ -294,6 +300,13 @@ bash "$SCRIPTS/run-scrape.sh" /linkedin-profile-main profileUrl "adrienbeaulieu"
 # More profiles: pass count=50 to cover the full popup
 bash "$SCRIPTS/run-scrape.sh" /linkedin-more-profiles profileUrl "adrienbeaulieu" 50
 # → {"status":"ready","taskId":"...","file":"adrienbeaulieu-50-...-monsterget.com.csv","rowCount":23,"empty":false,"url":"..."}
+
+# Job search: paste the LinkedIn search URL, choose page range (or pages=0 for auto-all)
+bash "$SCRIPTS/run-scrape.sh" /linkedin-search-jobs value "https://www.linkedin.com/jobs/search-results/?keywords=project%20manager" 25 page=1 pages=3
+
+# People search: keyword + optional numeric location/industry IDs
+bash "$SCRIPTS/run-scrape.sh" /linkedin-search-people value "AI engineer" 10 geo_urn=103644278 industry=6 page=1 pages=3
+# → {"status":"ready","taskId":"...","file":"AI-engineer-30-...-monsterget.com.csv","rowCount":30,"empty":false,"url":"..."}
 ```
 
 The script handles, in order:
@@ -375,6 +388,44 @@ bash "$SCRIPTS/run-scrape.sh" /linkedin-more-profiles profileUrls "adrienbeaulie
 ```
 
 > **Note**: with `run-scrape.sh`, the `profileUrls` values must be comma-separated on one line. Full URLs and bare slugs both work. `count` is **per profile**; for `linkedin_more_profiles` pass `50`, for `linkedin_profile_main` omit it or pass `1`.
+
+### Job search (multi-page)
+
+The user usually describes the job search in natural language ("remote product manager jobs posted this week"). Two ways to get the URL:
+
+1. **User already has a search URL** — use it verbatim (it keeps every filter: keyword, location, salary, date posted, remote, …).
+2. **Build a basic URL** from the keywords:
+   `https://www.linkedin.com/jobs/search-results/?keywords=<url-encoded keywords>`
+   For richer filters, ask the user to open LinkedIn Jobs, set the filters, and paste the address bar. Do not invent filter parameters.
+
+```bash
+# Pages 1-3 (75 jobs)
+bash "$SCRIPTS/run-scrape.sh" /linkedin-search-jobs value "https://www.linkedin.com/jobs/search-results/?keywords=data%20analyst" 25 page=1 pages=3
+
+# Auto-all pages (keep going until no more results — set a longer poll window)
+MONSTERGET_POLL_TIMEOUT=3600 bash "$SCRIPTS/run-scrape.sh" /linkedin-search-jobs value "https://www.linkedin.com/jobs/search-results/?keywords=data%20analyst" 25 pages=0
+```
+
+- `page` is the **starting** page (1-based); `pages` is how many pages to collect. `pages=0` = auto-all.
+- Each page is 25 jobs; `rowCount` ≈ 25 × pages collected.
+- The platform creates one parent task and chains the pages automatically — one CSV at the end.
+
+### People search (multi-page)
+
+People search uses a keyword plus optional **numeric** LinkedIn IDs:
+
+- `geo_urn` — location ID (e.g. `103644278` = United States, `102890883` = Greater China)
+- `industry` — industry ID (e.g. `6` = Technology, `43` = Finance, `14` = Healthcare, `4` = Education)
+
+How to get an ID: run the search on linkedin.com, look at the address bar, and copy the number inside `geoUrn=["..."]` or `industry=["..."]`. If the user does not care about a filter, omit that option.
+
+```bash
+# 3 pages × 10 results
+bash "$SCRIPTS/run-scrape.sh" /linkedin-search-people value "AI engineer" 10 geo_urn=103644278 industry=6 page=1 pages=3
+```
+
+- `count` is per page (10 by default, max 10 — use `pages` for more rows).
+- Total rows ≈ `count × pages` (LinkedIn may return fewer on the last page).
 
 ### Running multiple scrapes (AI-orchestrated, one at a time)
 

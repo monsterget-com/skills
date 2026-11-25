@@ -39,5 +39,5 @@ echo 'For Upwork data, read ~/.monsterget/skills/upwork-collector/SKILL.md' >> .
 Tell the AI which browser you used and say "好了". **No automatic checks — you confirm manually.**
 Then try: "找一下 Upwork 上关于 'Amazon' 的岗位 10 条".
 
-> This skill uses the shared Agent v2 contract (`scrapers_api` version 3) and
+> This skill uses the shared Agent v2 contract (`scrapers_api` version 4) and
 > requires extension **1.8.0+**.

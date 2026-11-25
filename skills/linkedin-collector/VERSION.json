@@ -1,8 +1,8 @@
 {
-  "version": "1.1.0",
-  "skill": "1.1.0",
-  "scrapers_api": "3",
+  "version": "1.2.1",
+  "skill": "1.2.1",
+  "scrapers_api": "4",
   "extension_recommended": "1.8.0",
   "extension_install_url": "https://monsterget.com/install",
-  "changelog": "v1.1.0: 对齐 Agent v2 / scrapers_api 3 — count 规则修正（profile_main 省略/1，more_profiles 传 50）；轮询默认 20 分钟（批量 30 分钟）；下载校验 200/409/410；空结果 empty 标记；补充批量休息与自动关窗说明。"
+  "changelog": "v1.2.1: macOS 打开抓取页后自动把 Chrome/Edge 提到前台（osascript activate），避免页面和扩展窗口藏在后台。"
 }

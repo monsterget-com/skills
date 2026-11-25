@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "skill": "1.0.0",
-  "scrapers_api": "3",
+  "version": "1.0.2",
+  "skill": "1.0.2",
+  "scrapers_api": "4",
   "extension_recommended": "1.8.0",
   "extension_install_url": "https://monsterget.com/install",
-  "changelog": "v1.0.0: 首个版本 — X/Twitter 7 个类型（搜索信息流、搜索用户、账号资料、用户推文、推文详情、推文评论、首页信息流），复用 Agent v2 通用 value/values/options 契约与批量父子任务。"
+  "changelog": "v1.0.2: macOS 打开抓取页后自动把 Chrome/Edge 提到前台（osascript activate），避免页面和扩展窗口藏在后台。"
 }

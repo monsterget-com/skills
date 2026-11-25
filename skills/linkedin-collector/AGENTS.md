@@ -1,6 +1,6 @@
 # LinkedIn Collector (MonsterGet)
 
-Collect LinkedIn data — profile main modules (header + About) and "More profiles for you" recommendations — as CSV, driven by an AI agent, scraped through the user's real logged-in browser via the MonsterGet browser extension (anti-ban). Works in any AI client that can run shell commands.
+Collect LinkedIn data — full profiles, "More profiles for you" recommendations, job search results, and people search results — as CSV, driven by an AI agent, scraped through the user's real logged-in browser via the MonsterGet browser extension (anti-ban). Works in any AI client that can run shell commands.
 
 ## Language rule
 
@@ -19,6 +19,8 @@ Instead, reply with 4-8 lines of conversational text in the user's language, giv
 > - "抓取 LinkedIn 用户 **adrienbeaulieu** 的档案"
 > - "抓取 @satyanadella、@tvdong 等 3 个 LinkedIn 用户的档案"
 > - "看看和 **adrienbeaulieu** 相似的用户都有谁"
+> - "搜一下 LinkedIn 上的 **AI engineer**，美国，科技行业，前 3 页"
+> - "抓取这个 LinkedIn 岗位搜索的前 5 页：https://www.linkedin.com/jobs/search-results/?keywords=..."
 >
 > 我会自动帮你抓取并生成 CSV 文件。需要什么直接说就行。
 
@@ -26,7 +28,7 @@ The implementation details (bash commands, script names, API URLs, polling) are 
 
 ## When to use
 
-The user asks for LinkedIn data: a profile's header + About text, several profiles at once, or the "More profiles for you" recommendation list — for research, sales leads, competitor analysis, or talent sourcing.
+The user asks for LinkedIn data: a profile's detail, several profiles at once, the "More profiles for you" recommendation list, job search results, or people search results — for research, sales leads, competitor analysis, recruiting, or talent sourcing.
 
 ## How it works
 
@@ -68,6 +70,8 @@ The choice persists across sessions. Never second-guess it with a disk scan.
 > - 抓取 LinkedIn 用户 adrienbeaulieu 的档案
 > - 抓取 @satyanadella、@tvdong 的 LinkedIn 档案
 > - 看看和 adrienbeaulieu 相似的用户
+> - 搜一下 LinkedIn 上的 "AI engineer"，美国，科技行业，前 3 页
+> - 抓取这个 LinkedIn 岗位搜索的前 5 页：https://www.linkedin.com/jobs/search-results/?keywords=...
 
 If anything is missing later (scrape fails), use the failure checklist in SKILL.md — again, manual only, never a script check.
 
@@ -110,11 +114,15 @@ bash ~/.monsterget/skills/linkedin-collector/scripts/run-scrape.sh <pagePath> <p
 | similar to @person | `/linkedin-more-profiles` | `profileUrl` | `adrienbeaulieu` |
 | several profiles | `/linkedin-profile-main` | `profileUrls` | `adrienbeaulieu,satyanadella,tvdong` (comma-separated, one line) |
 | several "similar to" | `/linkedin-more-profiles` | `profileUrls` | `adrienbeaulieu,satyanadella` |
+| job search | `/linkedin-search-jobs` | `value` | LinkedIn Jobs search URL + `page=N pages=M` |
+| people search | `/linkedin-search-people` | `value` | keyword + `geo_urn=… industry=… page=N pages=M` |
 
 **⚠️ Count rule (per scraper).**
 - `linkedin_profile_main`: omit `count` or pass `1` — one row per profile.
 - `linkedin_more_profiles`: pass `count=50` (platform max) so the full recommendation popup is collected. Omitting it defaults to 30 and can truncate.
 - Batch `profileUrls`: `count` is per profile; batch size is the length of the `profileUrls` list.
+- `linkedin_search_jobs`: fixed 25 jobs per page; pass `25` or omit. `page` = start page, `pages` = page count, `pages=0` = auto-all.
+- `linkedin_search_people`: `count` = results per page (default/max 10); `pages` 1–50. Optional `geo_urn` / `industry` numeric IDs.
 
 The script generates the taskId, opens the browser (fire-and-forget), verifies the process started, polls until ready (default 20 minutes; set `MONSTERGET_POLL_TIMEOUT=1800` for large batches), and downloads with HTTP/file verification. It never waits for the user.
 

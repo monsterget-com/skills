@@ -1,6 +1,6 @@
 # 🛡️ MonsterGet Skills — Web Scraping Anti-Bloqueo para IA
 
-> **Deja de ser bloqueado. Extrae datos de TikTok, X/Twitter, LinkedIn y Upwork desde tu navegador real — tu sesión ya iniciada. Automatizado por IA, cero configuración, permanentemente gratis.**
+> **Deja de ser bloqueado. Extrae datos de TikTok, X/Twitter, LinkedIn, Upwork, App Store y Google Play desde tu navegador real — tu sesión ya iniciada. Automatizado por IA, cero configuración, permanentemente gratis.**
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **Español** · [Português](README.pt.md)
 
@@ -14,7 +14,7 @@
 
 ## ✨ ¿Qué es?
 
-**MonsterGet Skills** convierte a cualquier asistente de IA en un motor de datos de TikTok, X/Twitter, LinkedIn y Upwork — sin que tus cuentas sean bloqueadas.
+**MonsterGet Skills** convierte a cualquier asistente de IA en un motor de datos de TikTok, X/Twitter, LinkedIn, Upwork y tiendas de apps — sin que tus cuentas sean bloqueadas.
 
 Aquí está el secreto a voces del web scraping: **los scrapers del lado del servidor son bloqueados.** TikTok, Instagram, LinkedIn — todos luchan contra navegadores headless, IPs de datacenter y pools de proxies. Tú refuerzas, ellos bloquean más fuerte. Es una carrera armamentista que pierdes.
 
@@ -35,6 +35,12 @@ MonsterGet cambia el juego: **la extracción se ejecuta dentro de tu propio nave
 | 🏷️ **Inteligencia de hashtags** | Ingresa un hashtag → CSV de cada video bajo ese tag |
 | 👤 **Auditoría de creadores** | Obtén todos los videos de un creador → análisis completo |
 | 📊 **Perfiles masivos** | 50+ usuarios a la vez → un CSV agregado |
+| 💼 **Perfiles de LinkedIn** | Cabecera + About → una fila por perfil |
+| 🧑‍💼 **Personas similares en LinkedIn** | "Más perfiles para ti" → nombre, titular, conexión |
+| 🔎 **Empleos de LinkedIn** | Búsqueda por URL, 25 por página, varias páginas / auto-all |
+| 👥 **Búsqueda de personas en LinkedIn** | Por palabra clave, ubicación e industria → nombre, titular, URL |
+| 🍎 **Reseñas de App Store** | Reseñas iOS por app + país → nota, título, texto, respuestas |
+| 🤖 **Reseñas de Google Play** | Reseñas Android por app + idioma → nota, texto, versión, votos |
 
 Todos los resultados son archivos CSV limpios — ábrelos en Excel, impórtalos a tu analizador, o alimenta a tu IA.
 
@@ -96,10 +102,11 @@ Después de eso, **cada extracción es instantánea.** Nunca más configuración
 |-------|----------|-------|
 | [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | Búsqueda de videos, creadores, hashtags, videos/perfiles de creador, comentarios y detalles de video | 7 |
 | [🐦 x-collector](skills/x-collector/SKILL.md) | Feeds de búsqueda, búsqueda de usuarios, perfiles, tweets de usuario, detalles/comentarios, feed de inicio | 7 |
-| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Perfil + About, personas similares, extracción por lotes | 2 |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Perfil + About, personas similares, extracción por lotes, búsqueda de empleos y personas | 4 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Búsqueda de empleos de Upwork (URL / páginas / autoAll) | 1 |
+| [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | Reseñas de iOS App Store + Android Google Play, multi-país/idioma | 2 |
 
-**17 tipos en total**, todos mediante la Agent API (`scrapers_api` v3, extensión **1.8.0+**).
+**21 tipos en total**, todos mediante la Agent API (`scrapers_api` v4, extensión **1.8.0+**; **1.12.0+** para reseñas de App Store / Google Play).
 
 ## 🔧 Cómo instalar
 
@@ -112,6 +119,8 @@ Después de eso, **cada extracción es instantánea.** Nunca más configuración
 > 💬 Instala el skill linkedin-collector desde https://github.com/monsterget-com/skills
 
 > 💬 Instala el skill upwork-collector desde https://github.com/monsterget-com/skills
+
+> 💬 Instala el skill app-reviews-collector desde https://github.com/monsterget-com/skills
 
 La IA clonará el repositorio, instalará el runtime y se configurará a sí misma.
 
@@ -132,7 +141,7 @@ Como el runtime vive en una ubicación fija (`~/.monsterget/skills/`), **todos t
 ```
 IA ──▶ genera taskId + abre URL en el navegador
          │
-Tu navegador ──▶ La extensión MonsterGet ejecuta la extracción en tu pestaña de TikTok
+Tu navegador ──▶ La extensión MonsterGet ejecuta la extracción en tu pestaña de TikTok / X / LinkedIn / Upwork / tienda de apps
                    │
                 Las filas se transmiten al buffer del servidor ──▶ IA consulta y descarga CSV
 ```

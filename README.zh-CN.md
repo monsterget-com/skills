@@ -1,6 +1,6 @@
 # 🛡️ MonsterGet Skills — 为 AI 打造的反封禁网页采集
 
-> **告别封号。通过你自己的真实浏览器采集 TikTok、X/Twitter、LinkedIn 和 Upwork —— 用你已登录的会话。AI 全自动，零配置，永久免费。**
+> **告别封号。通过你自己的真实浏览器采集 TikTok、X/Twitter、LinkedIn、Upwork、App Store 和 Google Play —— 用你已登录的会话。AI 全自动，零配置，永久免费。**
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md) · [Español](README.es.md) · [Português](README.pt.md)
 
@@ -14,7 +14,7 @@
 
 ## ✨ 这是什么？
 
-**MonsterGet Skills** 让任何 AI 助手变身 TikTok、X/Twitter、LinkedIn 和 Upwork 数据引擎 —— 而且不会让你的账号被封。
+**MonsterGet Skills** 让任何 AI 助手变身 TikTok、X/Twitter、LinkedIn、Upwork、应用商店数据引擎 —— 而且不会让你的账号被封。
 
 网页采集有一个公开的秘密：**服务端采集器会被封。** TikTok、Instagram、LinkedIn —— 它们都在对抗无头浏览器、机房 IP 和代理池。你加固，它们封得更狠。这是一场你注定输的军备竞赛。
 
@@ -37,6 +37,10 @@ MonsterGet 换了个玩法：**采集发生在你自己的浏览器里**，用�
 | 📊 **批量拉取主页** | 一次 50+ 个账号 → 一个 CSV，聚合统计 |
 | 💼 **LinkedIn 档案** | 档案头部 + 完整 About 简介 → 每个档案一行 |
 | 🧑‍💼 **LinkedIn 相似用户** | "为你推荐更多用户" → 姓名、头衔、共同好友 |
+| 🔎 **LinkedIn 岗位** | 按搜索 URL 采集岗位，25 条/页，多页 / 自动抓到底 |
+| 👥 **LinkedIn 用户** | 按关键词/地区/行业搜索用户 → 姓名、头衔、主页链接 |
+| 🍎 **App Store 评论** | 按 App + 国家采集 iOS 评论 → 评分、标题、正文、开发者回复 |
+| 🤖 **Google Play 评论** | 按 App + 语言采集 Android 评论 → 评分、正文、版本、点赞数 |
 
 所有结果都是干净的 CSV 文件 —— Excel 打开、导入分析工具，或喂回给你的 AI。
 
@@ -110,10 +114,11 @@ AI 负责全部编排：
 |-------|------|--------|
 | [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | 视频搜索、达人挖掘、标签、达人视频/资料、视频评论与详情 | 7 |
 | [🐦 x-collector](skills/x-collector/SKILL.md) | 搜索信息流、搜索用户、账号资料、用户推文、推文详情/评论、首页信息流 | 7 |
-| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn 档案头部 + About、相似用户推荐、批量拉取 | 2 |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn 档案头部 + About、相似用户推荐、批量拉取、岗位搜索、用户搜索 | 4 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Upwork 岗位搜索，支持指定 URL、页数与 autoAll | 1 |
+| [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | iOS App Store + Android Google Play 评论，多国家/多语言 | 2 |
 
-**共 17 个爬虫**，统一走 Agent API（`scrapers_api` v3，扩展 **1.8.0+**）。
+**共 21 个爬虫**，统一走 Agent API（`scrapers_api` v4，扩展 **1.8.0+**；App Store / Google Play 评论需 **1.12.0+**）。
 
 ## 🔧 安装方法
 
@@ -126,6 +131,8 @@ AI 负责全部编排：
 > 💬 安装 skill linkedin-collector，https://github.com/monsterget-com/skills
 
 > 💬 安装 skill upwork-collector，https://github.com/monsterget-com/skills
+
+> 💬 安装 skill app-reviews-collector，https://github.com/monsterget-com/skills
 
 AI 会自动克隆仓库，安装运行时，并配置自身。
 
@@ -152,7 +159,7 @@ AI 会自动克隆仓库，安装运行时，并配置自身。
 ```
 AI ──▶ 生成 taskId + 打开浏览器 URL
          │
-你的浏览器 ──▶ MonsterGet 扩展在你的 TikTok/LinkedIn 标签页中执行采集
+你的浏览器 ──▶ MonsterGet 扩展在你的 TikTok/LinkedIn/应用商店标签页中执行采集
                    │
                 数据行流入服务器缓冲区 ──▶ AI 轮询并下载 CSV
 ```

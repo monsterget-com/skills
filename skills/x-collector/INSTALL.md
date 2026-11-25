@@ -43,5 +43,5 @@ echo 'For X/Twitter data, read ~/.monsterget/skills/x-collector/SKILL.md' >> .ro
 Tell the AI which browser you used and say "好了". **No automatic checks — you confirm manually.**
 Then try: "搜索 X 上关于 'ai tool' 的推文 50 条".
 
-> This skill uses the shared Agent v2 contract (`scrapers_api` version 3) and
+> This skill uses the shared Agent v2 contract (`scrapers_api` version 4) and
 > requires extension **1.8.0+**.

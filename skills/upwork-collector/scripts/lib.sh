@@ -210,6 +210,20 @@ browser_choices_json() {
 # bypasses Windows' foreground-lock (AppActivate silently fails when this script runs
 # as a background child of an AI client — see focus-browser.ps1).
 _focus_browser() {
+  if [ "$(detect_os)" = "macos" ]; then
+    # macOS: `open`/binary launch puts the tab in the existing window without
+    # raising it when this script is a background child of an AI client.
+    local app=""
+    case "$BROWSER" in
+      chrome) app="Google Chrome" ;;
+      edge)   app="Microsoft Edge" ;;
+    esac
+    [ -z "$app" ] && return 0
+    if command -v osascript >/dev/null 2>&1; then
+      osascript -e "tell application \"$app\" to activate" >/dev/null 2>&1 || true
+    fi
+    return 0
+  fi
   [ "$(detect_os)" = "windows" ] || return 0
   [ -z "$BROWSER_EXE" ] && return 0
   command -v powershell >/dev/null 2>&1 || return 0

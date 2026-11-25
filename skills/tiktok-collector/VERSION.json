@@ -1,8 +1,8 @@
 {
-  "version": "1.5.0",
-  "skill": "1.5.0",
-  "scrapers_api": "3",
+  "version": "1.5.2",
+  "skill": "1.5.2",
+  "scrapers_api": "4",
   "extension_recommended": "1.8.0",
   "extension_install_url": "https://monsterget.com/install",
-  "changelog": "v1.5.0: 对齐 Agent v2 / scrapers_api 3 — 新增 TikTok 视频评论与视频详情；防检测延迟 3–6s；轮询默认 20 分钟（批量可 30 分钟）；下载校验 200/409/410；空结果 empty 标记；扩展自动关窗说明。"
+  "changelog": "v1.5.2: macOS 打开抓取页后自动把 Chrome/Edge 提到前台（osascript activate），避免页面和扩展窗口藏在后台。"
 }

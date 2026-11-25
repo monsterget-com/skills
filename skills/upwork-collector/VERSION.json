@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "skill": "1.0.0",
-  "scrapers_api": "3",
+  "version": "1.0.2",
+  "skill": "1.0.2",
+  "scrapers_api": "4",
   "extension_recommended": "1.8.0",
   "extension_install_url": "https://monsterget.com/install",
-  "changelog": "v1.0.0: 首个版本 — Upwork 岗位搜索；支持指定搜索 URL、起始页/页数（含 autoAll），父任务 + 分页子任务聚合 CSV。"
+  "changelog": "v1.0.2: macOS 打开抓取页后自动把 Chrome/Edge 提到前台（osascript activate），避免页面和扩展窗口藏在后台。"
 }
