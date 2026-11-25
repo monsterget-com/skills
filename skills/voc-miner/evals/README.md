@@ -3,6 +3,29 @@
 Run these 3 cases before every release. Each case is a specification; use real
 data when available, or a fixed fixture CSV for regression.
 
+## Fixture smoke test
+
+The fixture files in `evals/fixtures/` are intentionally small; they test the
+normalizer, not the analysis quality.
+
+```bash
+python scripts/analyze.py --type comment \
+  --input evals/fixtures/comments_sample.csv --out /tmp/comments.json
+
+python scripts/analyze.py --type review \
+  --input evals/fixtures/reviews_sample.csv --out /tmp/reviews.json
+
+python scripts/analyze.py --preset voc \
+  --comments /tmp/comments.json --reviews /tmp/reviews.json --out /tmp/stats.json
+```
+
+Expected:
+
+- comments count = 10
+- reviews count = 10
+- platforms include `tiktok`, `x`, `app-store`, `google-play`
+- confidence = `Low` (20 total items)
+
 ## Case 1 — DTC skincare brand (cross-source)
 
 **Input**
