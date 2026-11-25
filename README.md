@@ -116,11 +116,11 @@ After that, **every scrape is instant.** No more setup. Ever.
 |-------|--------------|-------|
 | [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | Video search, creator discovery, hashtags, creator videos/profiles, video comments and details | 7 |
 | [🐦 x-collector](skills/x-collector/SKILL.md) | Search feeds, user search, profiles, user tweets, tweet details, tweet comments, home feed | 7 |
-| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Profile header + About, similar-people recommendations, batch pulls, job search, people search | 4 |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Profile header + About, similar-people recommendations, batch pulls, job search, people search | 5 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Job search by URL, one/many pages, auto-all | 1 |
 | [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | iOS App Store + Android Google Play reviews, multi-country/language | 2 |
 
-**21 scrapers total**, all through the same Agent API (`scrapers_api` v4,
+**22 scrapers total**, all through the same Agent API (`scrapers_api` v4,
 extension **1.8.0+**; **1.12.0+** for App Store / Google Play reviews). More platforms will be added as the platform exposes
 them to the Agent API.
 

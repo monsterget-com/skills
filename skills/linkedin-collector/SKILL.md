@@ -197,6 +197,15 @@ Each scraper contains all the info needed to build the scrape URL:
 | `linkedin_more_profiles` | `/linkedin-more-profiles` | `profileUrl` | "More profiles for you" recommendation list (name, headline, connection, avatar, profile URL) for each recommended user |
 | `linkedin_search_jobs` | `/linkedin-search-jobs` | `value` (search URL) | Job search results: title, company, location, salary, post time, job URL — 25 per page, multi-page |
 | `linkedin_search_people` | `/linkedin-search-people` | `value` (keywords) | People search results: name, headline, location, connection degree, profile URL — multi-page |
+| `linkedin_job_detail` | `/linkedin-job-detail` | `values` (job URLs) | Full job detail for pasted LinkedIn job URLs: title, company, location, salary, applicants, work type, apply method and the full job description — batch |
+
+**Batch types**: when the live catalog entry has `input.batch: true` (e.g. `linkedin_job_detail`), pass the catalog's `batchParam` (usually `values`) as `<param>` with a comma-separated list, not `value`. `count` is per item. The catalog is the source of truth — do not hardcode this list.
+
+```bash
+# Job detail for 2 job URLs (batch)
+bash "$SCRIPTS/run-scrape.sh" /linkedin-job-detail values \
+  "https://www.linkedin.com/jobs/view/1111111111/,https://www.linkedin.com/jobs/view/2222222222/" 1
+```
 
 ## The flow
 

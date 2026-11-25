@@ -114,11 +114,11 @@ AI 负责全部编排：
 |-------|------|--------|
 | [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | 视频搜索、达人挖掘、标签、达人视频/资料、视频评论与详情 | 7 |
 | [🐦 x-collector](skills/x-collector/SKILL.md) | 搜索信息流、搜索用户、账号资料、用户推文、推文详情/评论、首页信息流 | 7 |
-| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn 档案头部 + About、相似用户推荐、批量拉取、岗位搜索、用户搜索 | 4 |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn 档案头部 + About、相似用户推荐、批量拉取、岗位搜索、用户搜索 | 5 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Upwork 岗位搜索，支持指定 URL、页数与 autoAll | 1 |
 | [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | iOS App Store + Android Google Play 评论，多国家/多语言 | 2 |
 
-**共 21 个爬虫**，统一走 Agent API（`scrapers_api` v4，扩展 **1.8.0+**；App Store / Google Play 评论需 **1.12.0+**）。
+**共 22 个爬虫**，统一走 Agent API（`scrapers_api` v4，扩展 **1.8.0+**；App Store / Google Play 评论需 **1.12.0+**）。
 
 ## 🔧 安装方法
 

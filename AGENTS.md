@@ -10,11 +10,11 @@ scraping, no proxies, no Python packages.
 |------|-------|----------|
 | [skills/tiktok-collector/](skills/tiktok-collector/) | TikTok video/creator/hashtag/profile/comments/detail | 7 types |
 | [skills/x-collector/](skills/x-collector/) | X search/profiles/user tweets/tweet detail/comments/home feed | 7 types |
-| [skills/linkedin-collector/](skills/linkedin-collector/) | LinkedIn profile, similar-people recommendations, job search, people search | 4 types |
+| [skills/linkedin-collector/](skills/linkedin-collector/) | LinkedIn profile, similar-people recommendations, job search, people search, job detail | 5 types |
 | [skills/upwork-collector/](skills/upwork-collector/) | Upwork job search (single/multi-page, auto-all) | 1 type |
 | [skills/app-reviews-collector/](skills/app-reviews-collector/) | iOS App Store + Android Google Play reviews (multi-country/language) | 2 types |
 
-Together they cover the 21 scrapers exposed by the platform Agent API
+Together they cover the 22 scrapers exposed by the platform Agent API
 (`scrapers_api` version 4; extension **1.8.0+**, **1.12.0+** for app-store reviews).
 
 ## Installing a skill

@@ -1,6 +1,6 @@
 # LinkedIn Collector (MonsterGet)
 
-Collect LinkedIn data — full profiles, "More profiles for you" recommendations, job search results, and people search results — as CSV, driven by an AI agent, scraped through the user's real logged-in browser via the MonsterGet browser extension (anti-ban). Works in any AI client that can run shell commands.
+Collect LinkedIn data — full profiles, "More profiles for you" recommendations, job search results, people search results, and full job details — as CSV, driven by an AI agent, scraped through the user's real logged-in browser via the MonsterGet browser extension (anti-ban). Works in any AI client that can run shell commands.
 
 ## Language rule
 
@@ -28,7 +28,7 @@ The implementation details (bash commands, script names, API URLs, polling) are 
 
 ## When to use
 
-The user asks for LinkedIn data: a profile's detail, several profiles at once, the "More profiles for you" recommendation list, job search results, or people search results — for research, sales leads, competitor analysis, recruiting, or talent sourcing.
+The user asks for LinkedIn data: a profile's detail, several profiles at once, the "More profiles for you" recommendation list, job search results, people search results, or full job details — for research, sales leads, competitor analysis, recruiting, or talent sourcing.
 
 ## How it works
 
@@ -116,6 +116,7 @@ bash ~/.monsterget/skills/linkedin-collector/scripts/run-scrape.sh <pagePath> <p
 | several "similar to" | `/linkedin-more-profiles` | `profileUrls` | `adrienbeaulieu,satyanadella` |
 | job search | `/linkedin-search-jobs` | `value` | LinkedIn Jobs search URL + `page=N pages=M` |
 | people search | `/linkedin-search-people` | `value` | keyword + `geo_urn=… industry=… page=N pages=M` |
+| job detail | `/linkedin-job-detail` | `values` | comma-separated job URLs (batch) |
 
 **⚠️ Count rule (per scraper).**
 - `linkedin_profile_main`: omit `count` or pass `1` — one row per profile.
@@ -123,6 +124,7 @@ bash ~/.monsterget/skills/linkedin-collector/scripts/run-scrape.sh <pagePath> <p
 - Batch `profileUrls`: `count` is per profile; batch size is the length of the `profileUrls` list.
 - `linkedin_search_jobs`: fixed 25 jobs per page; pass `25` or omit. `page` = start page, `pages` = page count, `pages=0` = auto-all.
 - `linkedin_search_people`: `count` = results per page (default/max 10); `pages` 1–50. Optional `geo_urn` / `industry` numeric IDs.
+- `linkedin_job_detail`: batch — pass `values=url1,url2` (not `value`); `count` is per job URL (1).
 
 The script generates the taskId, opens the browser (fire-and-forget), verifies the process started, polls until ready (default 20 minutes; set `MONSTERGET_POLL_TIMEOUT=1800` for large batches), and downloads with HTTP/file verification. It never waits for the user.
 
