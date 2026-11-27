@@ -13,6 +13,12 @@
 - First sample defaults to Quick (labelled as a small sample); full reports default to Standard. The Quick / Standard / Deep difference is shown before the user chooses.
 - Collectors aligned with the declarative Agent API catalog (content fingerprint `19144`, 22 scrapers).
 
+### Docs
+
+- Added a user guide under `docs/`: 5-minute quickstart, business menu (9 clusters), how to read a report, data & privacy, FAQ, plus an English quickstart.
+- Internal research and product-plan documents moved to `local/docs/` (gitignored) and removed from the public history.
+- Fixed the TikTok case-study index: removed four links to unwritten cases.
+
 ## v2.0.0-preview — 2026-11-25
 
 ### Added

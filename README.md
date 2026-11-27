@@ -4,6 +4,8 @@
 
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Português](README.pt.md)
 
+> 🆕 **New here?** Read the [5-minute guide](docs/en/getting-started.md), then the [business menu](docs/zh/business-menu.md) (zh) and [FAQ](docs/zh/faq.md) (zh).
+
 [![Permanently Free](https://img.shields.io/badge/🆓-Permanently%20Free-22bb33?style=flat-square)](https://monsterget.com)
 [![AI Native](https://img.shields.io/badge/🤖-AI%20Native-2196F3?style=flat-square)](https://monsterget.com)
 [![10M Credits](https://img.shields.io/badge/📦-10M%20on%20Signup-FF9800?style=flat-square)](https://monsterget.com)

@@ -4,6 +4,8 @@
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md) · [Español](README.es.md) · [Português](README.pt.md)
 
+> 🆕 **第一次用？** 先读 [5 分钟上手](docs/zh/getting-started.md)，再看 [业务菜单](docs/zh/business-menu.md) 和 [常见问题](docs/zh/faq.md)。
+
 [![永久免费](https://img.shields.io/badge/🆓-永久免费-22bb33?style=flat-square)](https://monsterget.com)
 [![AI 原生](https://img.shields.io/badge/🤖-AI%20原生-2196F3?style=flat-square)](https://monsterget.com)
 [![1000万条](https://img.shields.io/badge/📦-注册即享%201000万条-FF9800?style=flat-square)](https://monsterget.com)
