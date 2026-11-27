@@ -4,5 +4,5 @@
   "scrapers_api": "19144",
   "extension_recommended": "1.8.0",
   "extension_install_url": "https://monsterget.com/install",
-  "changelog": "v1.5.3: 对齐声明式 Agent 目录（当前 fingerprint 19144，22 个爬虫）；目录新增 LinkedIn 岗位详情。"
+  "changelog": "v1.5.3: 对齐声明式 Agent 目录（当前 fingerprint 19144，22 个爬虫）；新增价值优先的首次引导（ONBOARDING.md + set-onboarding.sh），先选业务目标再展示安装步骤。"
 }

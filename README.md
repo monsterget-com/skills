@@ -119,9 +119,34 @@ After that, **every scrape is instant.** No more setup. Ever.
 | [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Profile header + About, similar-people recommendations, batch pulls, job search, people search, job detail | 5 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Job search by URL, one/many pages, auto-all | 1 |
 | [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | iOS App Store + Android Google Play reviews, multi-country/language | 2 |
+| [📊 app-reviews-analyst](skills/app-reviews-analyst/SKILL.md) | Review CSV → rating/theme/trend metrics + self-contained HTML report (Python 3.10+) | CSV → report |
 
 **22 scrapers total**, all through the same Agent API (`scrapers_api` v4; the catalog version is a content fingerprint that auto-updates — currently `19144`; extension **1.8.0+**, **1.12.0+** for App Store / Google Play reviews). More platforms will be added as the platform exposes
 them to the Agent API.
+
+### 🧠 Business & Analysis Skills
+
+Collectors get data. Business and analysis skills turn data into decisions.
+
+| Skill | What it does | Status |
+|---|---|---|
+| [monsterget-context](skills/monsterget-context/SKILL.md) | Brand / product / ICP / voice / guardrails; business skills can read it first | ✅ |
+| [monsterget-business](skills/monsterget-business/SKILL.md) | Routes a business question to the right skill, estimates data volume/time | ✅ |
+| [voc-miner](skills/voc-miner/SKILL.md) | Voice-of-customer report from TikTok/X comments + App Store/Play reviews | ✅ |
+| [freelance-lead-radar](skills/freelance-lead-radar/SKILL.md) | Ranked Upwork leads + proposal drafts + pricing guidance | ✅ |
+| [app-reviews-analyst](skills/app-reviews-analyst/SKILL.md) | Deterministic review metrics + single-file HTML report, for iteration and sharing | ✅ |
+| [tiktok-collector](skills/tiktok-collector/ONBOARDING.md) | Value-first onboarding: pick an outcome before setup, get a labelled Quick sample | ✅ |
+
+Start with `monsterget-context` (optional) → `monsterget-business` → the chosen skill.
+See [CATALOG.md](CATALOG.md) for the full catalog and routing table.
+
+**Data volume:** the first sample defaults to **Quick** and is labelled as a small
+sample; a full report defaults to **Standard** (1,000–2,000 analyzed items). The
+Quick / Standard / Deep difference is shown before the user chooses. See
+[DATA-STANDARDS.md](DATA-STANDARDS.md) for per-skill quotas, collector caps,
+saturation and confidence rules.
+
+> Business skills from the `v2` preview are now merged into `main` (2026-11-27).
 
 ## 🔧 How to Install
 
@@ -136,6 +161,16 @@ them to the Agent API.
 > 💬 Install the upwork-collector skill from https://github.com/monsterget-com/skills
 
 > 💬 Install the app-reviews-collector skill from https://github.com/monsterget-com/skills
+
+> 💬 Install the app-reviews-analyst skill from https://github.com/monsterget-com/skills
+
+> 💬 Install the monsterget-context skill from https://github.com/monsterget-com/skills
+
+> 💬 Install the monsterget-business skill from https://github.com/monsterget-com/skills
+
+> 💬 Install the voc-miner skill from https://github.com/monsterget-com/skills
+
+> 💬 Install the freelance-lead-radar skill from https://github.com/monsterget-com/skills
 
 That's it. The AI clones the repo, installs the runtime, and wires itself up.
 

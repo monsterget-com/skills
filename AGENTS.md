@@ -22,6 +22,43 @@ Together they cover the 22 scrapers exposed by the platform Agent API
 an HTML report and `metrics.json` for downstream content skills. It requires
 Python 3.10+ (standard library only). Collector skills remain zero-install.
 
+### Business and analysis skills
+
+Collectors get data; business and analysis skills turn data into a decision. The flow is:
+
+```text
+monsterget-context (optional)  ->  monsterget-business  ->  voc-miner / freelance-lead-radar / ...
+app-reviews-collector          ->  app-reviews-analyst  ->  report.html + metrics.json
+```
+
+| Path | Skill | What it does |
+|------|-------|--------------|
+| [skills/monsterget-context/](skills/monsterget-context/) | Business context | Brand, product, ICP, voice, guardrails -> `.agents/monsterget-context.md` |
+| [skills/monsterget-business/](skills/monsterget-business/) | Router | Picks the right business skill and estimates data/time |
+| [skills/voc-miner/](skills/voc-miner/) | VOC Miner | TikTok/X comments + App Store/Play reviews -> evidence-backed VOC report |
+| [skills/freelance-lead-radar/](skills/freelance-lead-radar/) | Freelance Lead Radar | Upwork jobs -> ranked leads + proposal drafts |
+
+Business skills do **not** duplicate the collector runtime. Each business skill
+ships `scripts/resolve-runtime.sh` and uses it to find the collector:
+
+```bash
+SKILL_DIR="${MONSTERGET_HOME:-$HOME/.monsterget}/skills/voc-miner"
+[ -d "$SKILL_DIR" ] || SKILL_DIR=".agents/skills/voc-miner"
+RUN_SCRAPE="$(bash "$SKILL_DIR/scripts/resolve-runtime.sh" tiktok-collector)"
+bash "$RUN_SCRAPE" /tiktok-search-video query "..." 50
+```
+
+**Data volume:** the first sample defaults to **Quick** and must be labelled as a
+small sample; a full report defaults to **Standard** (1,000–2,000 analyzed items).
+Show the Quick / Standard / Deep difference before the user chooses. Read
+[DATA-STANDARDS.md](DATA-STANDARDS.md) before planning a scrape; never silently
+run a demo-sized sample for a real report.
+
+Business skills were merged from the `v2` preview into `main` on 2026-11-27. The
+`tiktok-collector` value-first onboarding pilot is part of the same merge; its
+`ONBOARDING.md` is the standalone fallback when the `monsterget` front door is not
+installed.
+
 ## Installing a skill
 
 Say in your chat:
@@ -37,6 +74,14 @@ Say in your chat:
 > Install the app-reviews-collector skill from https://github.com/monsterget-com/skills
 >
 > Install the app-reviews-analyst skill from https://github.com/monsterget-com/skills
+>
+> Install the monsterget-context skill from https://github.com/monsterget-com/skills
+>
+> Install the monsterget-business skill from https://github.com/monsterget-com/skills
+>
+> Install the voc-miner skill from https://github.com/monsterget-com/skills
+>
+> Install the freelance-lead-radar skill from https://github.com/monsterget-com/skills
 
 ### Self-install contract (for the agent receiving that instruction)
 
@@ -51,10 +96,21 @@ Say in your chat:
 
    Skills live side-by-side: `~/.monsterget/skills/tiktok-collector/`,
    `~/.monsterget/skills/x-collector/`, `~/.monsterget/skills/linkedin-collector/`,
-   `~/.monsterget/skills/upwork-collector/`, `~/.monsterget/skills/app-reviews-collector/`.
+   `~/.monsterget/skills/upwork-collector/`, `~/.monsterget/skills/app-reviews-collector/`,
+   `~/.monsterget/skills/app-reviews-analyst/`, plus business skills under
+   `~/.monsterget/skills/monsterget-context/`,
+   `~/.monsterget/skills/monsterget-business/`, `~/.monsterget/skills/voc-miner/`,
+   `~/.monsterget/skills/freelance-lead-radar/`.
    Each is self-contained. The shared
    `~/.monsterget/state.json` (browser choice, download dir) and
    `~/.monsterget/version.json` (scrapers API version) carry cross-skill settings.
+
+   **Business skill dependencies:** install the collectors it needs first
+   (`voc-miner` -> `tiktok-collector`, `x-collector`, `app-reviews-collector`;
+   `freelance-lead-radar` -> `upwork-collector`;
+   `app-reviews-analyst` -> `app-reviews-collector`). Business skills find the
+   collector runtime with `scripts/resolve-runtime.sh`; `app-reviews-analyst`
+   needs Python 3.10+ and reads collector CSVs directly.
 
 3. Add a one-line pointer in your own custom-instructions / rules file:
 
@@ -64,16 +120,21 @@ Say in your chat:
    For LinkedIn data, read ~/.monsterget/skills/linkedin-collector/SKILL.md and run its scripts.
    For Upwork data, read ~/.monsterget/skills/upwork-collector/SKILL.md and run its scripts.
    For App Store / Google Play reviews, read ~/.monsterget/skills/app-reviews-collector/SKILL.md and run its scripts.
+   For App review analysis and HTML reports, read ~/.monsterget/skills/app-reviews-analyst/SKILL.md and run its scripts.
+   For business context, read ~/.monsterget/skills/monsterget-context/SKILL.md first.
+   For business research, read ~/.monsterget/skills/monsterget-business/SKILL.md and route to the right skill.
    ```
 
 4. Read the requested skill's `SKILL.md` (or `AGENTS.md` for non-Claude clients)
    and follow its flow.
 
 5. **Immediately run that skill's First-Run flow.** Install is the one moment
-   the user is listening. The skill's `AGENTS.md` contains the exact setup guide
-   (install extension → log in monsterget.com → log in the target site when
-   required; app-store reviews need no store login), the manual confirmation
-   step, and `choose-browser.sh`.
+   the user is listening. The skill's `AGENTS.md` contains the exact flow. If it
+   defines a **value-first onboarding** (e.g. `tiktok-collector`), start with the
+   value menu and show the setup only after the user chooses a goal. Otherwise
+   follow its setup guide (install extension → log in monsterget.com → log in the
+   target site when required; app-store reviews need no store login), the manual
+   confirmation step, and `choose-browser.sh`.
 
    **Never run detection scripts, scan the disk, or verify programmatically** —
    the user's manual confirmation is the only check.

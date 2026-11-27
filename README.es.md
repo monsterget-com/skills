@@ -105,6 +105,7 @@ Después de eso, **cada extracción es instantánea.** Nunca más configuración
 | [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Perfil + About, personas similares, extracción por lotes, búsqueda de empleos/personas, detalle de empleo | 5 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Búsqueda de empleos de Upwork (URL / páginas / autoAll) | 1 |
 | [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | Reseñas de iOS App Store + Android Google Play, multi-país/idioma | 2 |
+| [📊 app-reviews-analyst](skills/app-reviews-analyst/SKILL.md) | Análisis de reseñas CSV → métricas + informe HTML de un solo archivo (Python 3.10+) | CSV → informe |
 
 **22 tipos en total**, todos mediante la Agent API (`scrapers_api` v4; la versión del catálogo es una huella de contenido que se actualiza sola — actualmente `19144`; extensión **1.8.0+**, **1.12.0+** para reseñas de App Store / Google Play).
 
@@ -121,6 +122,8 @@ Después de eso, **cada extracción es instantánea.** Nunca más configuración
 > 💬 Instala el skill upwork-collector desde https://github.com/monsterget-com/skills
 
 > 💬 Instala el skill app-reviews-collector desde https://github.com/monsterget-com/skills
+
+> 💬 Instala el skill app-reviews-analyst desde https://github.com/monsterget-com/skills
 
 La IA clonará el repositorio, instalará el runtime y se configurará a sí misma.
 

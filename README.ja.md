@@ -105,6 +105,7 @@ MonsterGet はゲームを変えます：**収集はあなた自身のブラウ�
 | [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn プロフィール + About、類似ユーザー、一括取得、求人検索、ユーザー検索、求人詳細 | 5 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Upwork 求人検索（URL / ページ数 / autoAll） | 1 |
 | [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | iOS App Store + Android Google Play レビュー、多国・多言語 | 2 |
+| [📊 app-reviews-analyst](skills/app-reviews-analyst/SKILL.md) | レビューCSV → 指標 + 単一HTMLレポート（Python 3.10+） | CSV → レポート |
 
 **合計 22 タイプ**、すべて Agent API（`scrapers_api` v4、カタログ版は内容フィンガープリントで自動更新・現在 `19144`、拡張 **1.8.0+**、App Store / Google Play レビューは **1.12.0+**）経由。
 
@@ -121,6 +122,8 @@ MonsterGet はゲームを変えます：**収集はあなた自身のブラウ�
 > 💬 upwork-collector スキルをインストールして。https://github.com/monsterget-com/skills
 
 > 💬 app-reviews-collector スキルをインストールして。https://github.com/monsterget-com/skills
+
+> 💬 app-reviews-analyst スキルをインストールして。https://github.com/monsterget-com/skills
 
 AI が自動でリポジトリをクローンし、ランタイムをインストールして、自身を設定します。
 

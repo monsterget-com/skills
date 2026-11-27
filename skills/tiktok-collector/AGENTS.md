@@ -6,24 +6,24 @@ Collect TikTok data (video search, creator search, hashtag search, creator video
 
 Always reply to the user in the user's own language (zh → 中文, ja → 日本語, es → Español, …).
 
-## ⚠️ Answering "how to use" questions — user-first rule
+## ⚠️ Answering "how to use" questions — value-first rule
 
-When the user asks "怎么使用", "how to use this skill", "怎么用爬虫", or anything equivalent asking for usage guidance:
+When the user asks "怎么使用", "how to use this skill", "怎么用爬虫", "你能做什么", or anything equivalent asking for usage guidance:
 
 **The user is an end user, not a developer of this skill. Never show them bash commands, script paths (`run-scrape.sh`, `choose-browser.sh`), API endpoints (`monsterget.com/api/…`), taskIds, polling logic, VERSION.json, state.json, or any implementation detail.**
 
-Instead, reply with 4-8 lines of conversational text in the user's language, giving 2-3 example natural-language prompts they can just say:
+Show the 4 business outcomes and ask them to pick one:
 
-> 你可以直接对我这样说：
+> 你可以用 TikTok 数据做这 4 类事：
 >
-> - "抓取 TikTok 上关于 **mike tyson** 的视频 50 条"
-> - "搜索做 **beauty** 内容的创作者 30 个"
-> - "抓取 **#kpop** 标签下的视频"
-> - "导出 **@tiktok** 这个账号的全部视频"
+> 1️⃣ 找爆款/竞品打法 — 抓热门视频，按互动率找选题
+> 2️⃣ 找达人/创作者 — 按内容方向找创作者，看粉丝和互动
+> 3️⃣ 听用户声音 — 抓视频评论，找真实需求/不满
+> 4️⃣ 追标签/趋势 — 看某个标签最近什么内容在涨
 >
-> 我会自动帮你抓取并生成 CSV 文件。需要什么直接说就行。
+> 回复 1–4；不确定就回复"你推荐"。
 
-The implementation details (bash commands, script names, API URLs, polling) are for your execution only — they must never appear in your answer to the user.
+Do not open with setup steps. Only after the user picks do you show the mini plan and the setup they need. The full flow and copy bank are in `ONBOARDING.md`.
 
 ## When to use
 
@@ -37,42 +37,64 @@ AI generates taskId ──▶ opens browser URL ──▶ page creates task, ext
 
 No server-side TikTok scraping. The scrape runs inside the user's real TikTok session (logged in, with the MonsterGet extension). That's what keeps accounts safe from bans.
 
-## First-run flow (pure manual — no code verification)
+## First-run flow (value first — no setup wall)
 
-The user needs 3 things, all in the **same browser** (the one they chose). The AI shows the guide and the user confirms manually. **No script checks anything.**
+**Read `ONBOARDING.md` before the first user-facing message.** The first message sells outcomes, not setup. The full flow, copy bank, branches, and acceptance checklist live there; this section is the short version.
 
-**a. Show the full 3-step guide with links** (in the user's language) — so the user knows exactly what to prepare:
+**a. Show the value menu** (in the user's language) — 4 TikTok business outcomes, 0 setup steps:
 
-> 用这个 skill 前需要准备 3 件事（都用同一个浏览器：**Edge 或 Chrome**）：
-> ① 安装 MonsterGet 扩展 → 打开 https://monsterget.com/install 安装
-> ② 登录 monsterget.com → 打开 https://monsterget.com 注册并登录
-> ③ 登录 TikTok → 打开 https://www.tiktok.com 登录你的账号
+> 装好了 ✅ 先不用配置。
+> 你想先用 TikTok 数据达成什么？回复数字：
 >
-> 装好扩展后告诉我装在了哪个浏览器（回复"Edge"或"Chrome"），全部准备好了回复"好了"。
+> 1️⃣ 找爆款/竞品打法
+>    抓关键词或竞品账号下的热门视频，按互动率找选题
+>
+> 2️⃣ 找达人/创作者
+>    按内容方向找创作者，看粉丝和互动
+>
+> 3️⃣ 听用户声音
+>    抓视频评论，找真实需求/不满
+>
+> 4️⃣ 追标签/趋势
+>    看某个标签最近什么内容在涨
+>
+> 回复 1–4；不确定就回复"你推荐"。
 
-**b. WAIT** for the user to reply with the browser name and "好了". **Never run any detection script, never scan the disk, never verify programmatically.** The user's manual confirmation is the only check.
+**b. WAIT** for the user to choose. Then show the mini plan for that choice — deliverable, Quick sample size, and time. Do not show setup yet.
 
-**c. Save the browser choice** — whatever the user said, save it directly:
+**c. Ask exactly one input** — keyword, competitor account, creator handle, or video URL. Always offer "你推荐".
 
-```bash
-bash ~/.monsterget/skills/tiktok-collector/scripts/choose-browser.sh edge
-# (or chrome — user said Chrome)
-# → {"ok":true,"browser":"edge",...}
-```
+If the user already gave a direct task ("抓取 mike tyson 50 条"), skip the menu and start at the mini plan with that input.
 
-The choice persists across sessions. Never second-guess it with a disk scan.
+**d. Just-in-time setup** — only after the input, show the 3 things (extension, monsterget.com login, TikTok login) and save the browser choice. **Never run any detection script, never scan the disk, never verify programmatically.** The user's manual confirmation is the only check.
 
-**d. Confirm + offer example prompts:**
+**e. First sample + deliver** — run a Quick sample, label it "小样/Quick", then show the CSV path + Top results + 3 insights and a next-step menu (deepen / switch / done).
 
-> ✅ 都准备好了，可以开始抓取了！
-> 试试下面任意一句：
-> - 抓取关于 "mike tyson" 的 TikTok 视频 50 条
-> - 找出做 "beauty" 内容的 TikTok 创作者 30 个
-> - 抓取 #kpop 标签下的视频 30 条
-> - 抓取 @tiktok 这位创作者的全部视频
-> - 抓取 @mike、@jenifer、@tiktok 的主页数据
+**f. Persist** — save goal/sub/input/stage with `set-onboarding.sh` so the next session can offer "继续上次的吗？".
 
-If anything is missing later (scrape fails), use the failure checklist in SKILL.md — again, manual only, never a script check.
+### Mini plan example (choice 1)
+
+> 好，选「找爆款/竞品打法」。
+>
+> 先跑一个 3–5 分钟的小样（Quick 档，明确标注是小样）：
+> - 50 条相关视频：标题/播放/点赞/评论/发布时间
+> - 按互动率排序，给你 Top 10
+> - 3 个可复制的选题方向
+>
+> 只需要 1 个信息：关键词或竞品账号。
+> 没有的话回复"你推荐"，我先用行业默认词。
+
+### Delivery example
+
+> 结果好了 ✅
+> - 50 条视频，Top 3 互动率：...
+> - CSV：...
+> - 3 个可复制选题：...
+>
+> 下一步：
+> A. 扩到 250–300 条，做完整分析（Standard）
+> B. 换一个关键词/竞品对比
+> C. 换一个目标
 
 ## Scripts
 
@@ -92,6 +114,7 @@ Each script prints one JSON object to stdout and exits 0 on success / 1 on failu
 |--------|---------|
 | `update-skill.sh` | Session start — auto-update check. Compare local version against GitHub, auto-download updates. |
 | `choose-browser.sh <edge\|chrome>` | Save the user's browser choice (manual — no verification, saves whatever the user says). |
+| `set-onboarding.sh key value [key value ...]` | Persist onboarding goal/sub/input/stage for the value-first flow (`goal`, `sub`, `input`, `stage`). |
 | `run-scrape.sh <pagePath> <param> <value> [count] [key=value ...]` | Full scrape: generate taskId, open browser, verify process, poll, download CSV. Extra options cover comments/detail flags. |
 | `set-download-dir.sh [<dir>]` | Choose where scraped CSVs are saved (persists in state). No arg = system Downloads. Ask the user once per machine. |
 
@@ -99,7 +122,7 @@ Each script prints one JSON object to stdout and exits 0 on success / 1 on failu
 
 ### Browser choice
 
-During installation the user verbally confirms which browser has the MonsterGet extension; the AI saves it with `choose-browser.sh`. `run-scrape.sh` reads the saved `browser_pref` and opens that browser. No detection, no scanning, no second-guessing.
+During onboarding — after the user chooses a goal and gives the input — the user verbally confirms which browser has the MonsterGet extension; the AI saves it with `choose-browser.sh`. `run-scrape.sh` reads the saved `browser_pref` and opens that browser. No detection, no scanning, no second-guessing.
 
 ### Scrape
 
@@ -129,6 +152,10 @@ Output on success: `{"status":"ready","taskId":"...","file":"...csv","rowCount":
 
 ## Behavior rules for the agent
 
+- **First message = value menu.** Never open with setup steps. The user picks a business outcome before seeing any installation instruction — unless they already stated a direct task; then acknowledge it and go to the mini plan/input.
+- **One input at a time.** After the user chooses a goal, ask only for the one input the task needs (keyword, competitor, handle, tag, or URL). Always offer "你推荐/用默认".
+- **First sample is Quick and labeled.** Deliver the CSV + Top results + 3 insights, then offer the Standard tier. Never call a Quick sample a full report.
+- **Returning users**: read `tiktok_onboarding_*` from `~/.monsterget/state.json` and offer "继续上次的吗？" before showing the menu again.
 - **Open + verify + poll in one shot.** Never ask "is the browser open?" or "shall I continue?".
 - **Multiple scrapes = orchestrate them one at a time.** Run the first `run-scrape.sh`, wait for its result, then run the next. The page's `auto=1` flow already inserts a random 3–6s delay before the scraper window opens (anti-detection), so you don't add any sleep — just run each scrape and report between them.
 - **Show the CSV path + a few rows** so the user trusts the result.
@@ -141,7 +168,7 @@ Output on success: `{"status":"ready","taskId":"...","file":"...csv","rowCount":
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `not_found` / `timeout` | Extension missing, not logged in, or the tab was closed | Run the 3-point manual checklist (SKILL.md Step 3) — the user checks each in the browser by hand |
+| `not_found` / `timeout` | Extension missing, not logged in, or the tab was closed | Run the failure checklist in `SKILL.md` (`### 3. On failure — user checklist`) — the user checks each in the browser by hand |
 | `platform_reachable: false` | monsterget.com unreachable | Ask user to check the URL manually |
 | `browser did not start` | Launch command failed | Ask user to open the URL manually in the extension browser |
 | Not ready within the poll window | Extension missing / not logged in / tab closed / still queued | Keep the tab open until `ready`; the extension auto-closes after completion |

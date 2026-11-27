@@ -117,8 +117,32 @@ AI 负责全部编排：
 | [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn 档案头部 + About、相似用户推荐、批量拉取、岗位搜索、用户搜索、岗位详情 | 5 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Upwork 岗位搜索，支持指定 URL、页数与 autoAll | 1 |
 | [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | iOS App Store + Android Google Play 评论，多国家/多语言 | 2 |
+| [📊 app-reviews-analyst](skills/app-reviews-analyst/SKILL.md) | 评论 CSV → 评分/主题/趋势指标 + 单文件 HTML 报告（Python 3.10+） | CSV → 报告 |
 
 **共 22 个爬虫**，统一走 Agent API（`scrapers_api` v4；目录版本是内容指纹，自动更新，当前 `19144`；扩展 **1.8.0+**，App Store / Google Play 评论需 **1.12.0+**）。
+
+### 🧠 业务与分析 Skill
+
+采集器负责拿数据，业务/分析 Skill 负责把数据变成决策。
+
+| Skill | 作用 | 状态 |
+|---|---|---|
+| [monsterget-context](skills/monsterget-context/SKILL.md) | 品牌/产品/ICP/语气/禁区；业务 Skill 可选读取 | ✅ |
+| [monsterget-business](skills/monsterget-business/SKILL.md) | 根据业务问题选对 Skill，估算数据量/时间 | ✅ |
+| [voc-miner](skills/voc-miner/SKILL.md) | 评论 + 应用商店评论 → 用户之声报告 | ✅ |
+| [freelance-lead-radar](skills/freelance-lead-radar/SKILL.md) | Upwork 岗位 → 机会榜单 + proposal 草稿 + 报价建议 | ✅ |
+| [app-reviews-analyst](skills/app-reviews-analyst/SKILL.md) | 确定性评论指标 + 单文件 HTML 报告，可迭代、可分享 | ✅ |
+| [tiktok-collector](skills/tiktok-collector/ONBOARDING.md) | 价值优先的首次引导：先选业务目标，再给标注清楚的 Quick 小样 | ✅ |
+
+使用顺序：`monsterget-context`（可选）→ `monsterget-business` → 具体业务 Skill。
+完整目录和路由表见 [CATALOG.md](CATALOG.md)。
+
+**数据量标准：** 首次运行默认 **Quick**，并明确标注为小样；完整报告默认
+**Standard**（1,000–2,000 条有效数据）。用户选择前先展示 Quick / Standard / Deep
+的区别。每个 Skill 的配额、采集器上限、饱和判断和置信度规则见
+[DATA-STANDARDS.md](DATA-STANDARDS.md)。
+
+> `v2` 预览中的业务 Skill 已于 2026-11-27 合入 `main`。
 
 ## 🔧 安装方法
 
@@ -133,6 +157,16 @@ AI 负责全部编排：
 > 💬 安装 skill upwork-collector，https://github.com/monsterget-com/skills
 
 > 💬 安装 skill app-reviews-collector，https://github.com/monsterget-com/skills
+>
+> 💬 安装 skill app-reviews-analyst，https://github.com/monsterget-com/skills
+>
+> 💬 安装 skill monsterget-context，https://github.com/monsterget-com/skills
+>
+> 💬 安装 skill monsterget-business，https://github.com/monsterget-com/skills
+>
+> 💬 安装 skill voc-miner，https://github.com/monsterget-com/skills
+>
+> 💬 安装 skill freelance-lead-radar，https://github.com/monsterget-com/skills
 
 AI 会自动克隆仓库，安装运行时，并配置自身。
 

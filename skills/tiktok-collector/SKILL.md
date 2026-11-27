@@ -95,7 +95,8 @@ Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
 | Script | When | What it does |
 |--------|------|--------------|
 | `update-skill.sh` | Session start (Step 0a) — auto-update check | Compares local skill version against GitHub, auto-downloads updates. Also outputs `scrapers_api` for version tracking |
-| `choose-browser.sh <edge\|chrome>` | Installation — user picks a browser | Saves the browser preference (`browser_pref`) to state |
+| `choose-browser.sh <edge\|chrome>` | Onboarding — user picks a browser | Saves the browser preference (`browser_pref`) to state |
+| `set-onboarding.sh key value [...]` | Value-first onboarding — after the goal choice / first result | Persists `tiktok_onboarding_goal`, `tiktok_onboarding_sub`, `tiktok_onboarding_input`, `tiktok_onboarding_stage` so the next session can offer "继续上次的吗？" |
 | `run-scrape.sh <pagePath> <param> <value> [count] [key=value ...]` | Every scrape | End-to-end: taskId → open browser → verify process → poll → download CSV. Extra `key=value` args cover options like `include_replies`, `max_replies`, `export_video` |
 | `set-download-dir.sh [<dir>]` | First scrape (ask once) | Choose where CSVs are saved. No arg = OS default Downloads dir |
 
@@ -106,32 +107,131 @@ Every command below is written as `bash "$SCRIPTS/<name>.sh"`.
 A small JSON key/value store that persists your browser choice, download directory, and last task info:
 
 ```json
-{"browser_pref":"edge","download_dir":"D:/tiktok-data"}
+{"browser_pref":"edge","download_dir":"D:/tiktok-data","tiktok_onboarding_goal":"growth","tiktok_onboarding_sub":"competitor","tiktok_onboarding_input":"mike tyson","tiktok_onboarding_stage":"delivered"}
 ```
 
-- **`browser_pref`** — the browser the user chose during installation (`edge` or `chrome`). Set by `choose-browser.sh`. Read it at the start of every task to produce the reminder sentence.
+- **`browser_pref`** — the browser the user chose during onboarding (`edge` or `chrome`). Set by `choose-browser.sh`. Read it at the start of every task to produce the reminder sentence.
 - **`download_dir`** — where CSVs are saved. Set by `set-download-dir.sh`.
+- **`tiktok_onboarding_goal` / `tiktok_onboarding_sub` / `tiktok_onboarding_input` / `tiktok_onboarding_stage`** — value-first onboarding memory. Set by `set-onboarding.sh`. Used to offer "继续上次的吗？" before showing the menu again.
 - Read the file with: `cat ~/.monsterget/state.json`.
 
-## Installation Guide (one-time, ~2 minutes)
+## Value-first onboarding (read `ONBOARDING.md` first)
 
-> This skill does **no automatic detection** — every condition is verified manually. The AI only reminds, never checks.
+> **The first message after installation must sell outcomes, not setup.** The
+> full flow, copy bank, branches, and acceptance checklist are in
+> `ONBOARDING.md`.
+
+### The order
+
+1. **Value menu** — 4 TikTok business outcomes. No setup steps.
+2. **Mini plan** — deliverable, Quick sample size, time, and one input.
+3. **One input** — keyword/competitor/creator/tag/video URL; always offer "你推荐".
+4. **Just-in-time setup** — only the 3 things this task needs, then save the
+   browser choice.
+5. **First sample** — Quick tier, labelled; deliver CSV + Top results + 3
+   insights.
+6. **Next step** — deepen to Standard / switch goal / done. Persist state.
+
+### First message (zh-CN)
+
+```text
+装好了 ✅ 先不用配置。
+你想先用 TikTok 数据达成什么？回复数字：
+
+1️⃣ 找爆款/竞品打法
+   抓关键词或竞品账号下的热门视频，按互动率找选题
+
+2️⃣ 找达人/创作者
+   按内容方向找创作者，看粉丝和互动
+
+3️⃣ 听用户声音
+   抓视频评论，找真实需求/不满
+
+4️⃣ 追标签/趋势
+   看某个标签最近什么内容在涨
+
+回复 1–4；不确定就回复"你推荐"。
+```
+
+### Mini plan example (choice 1)
+
+```text
+好，选「找爆款/竞品打法」。
+
+先跑一个 3–5 分钟的小样（Quick 档，明确标注是小样）：
+- 50 条相关视频：标题/播放/点赞/评论/发布时间
+- 按互动率排序，给你 Top 10
+- 3 个可复制的选题方向
+
+只需要 1 个信息：关键词或竞品账号。
+没有的话回复"你推荐"，我先用行业默认词。
+```
+
+### Delivery + next step
+
+```text
+结果好了 ✅
+- {rowCount} 条，Top 3：...
+- CSV：{path}
+- 3 条可执行洞察：...
+
+下一步：
+A. 扩到 {Standard count} 条，做完整分析（Standard）
+B. 换一个关键词/账号对比
+C. 换一个目标
+```
+
+### Returning user
+
+Read `~/.monsterget/state.json`. If `tiktok_onboarding_goal` exists and
+`tiktok_onboarding_stage` is an active stage (`mini_plan`, `one_input`, `setup`,
+`first_sample`, `delivered`):
+
+```text
+上次你在做「{goal_label}」，要继续吗？
+A. 继续上次的关键词/账号
+B. 换一个关键词/账号
+C. 换一个目标
+```
+
+Persist with:
+
+```bash
+bash "$SCRIPTS/set-onboarding.sh" goal growth sub competitor input "mike tyson" stage delivered
+```
+
+### Guardrails
+
+- Never show bash, script paths, API endpoints, taskIds, polling logic,
+  `state.json`, or `VERSION.json` to the user.
+- Never show the 3 setup steps before the value menu.
+- Ask one input at a time; always offer "你推荐/用默认".
+- Label the first sample "小样/Quick"; never call it a full report.
+- Keep the one-browser rule and the pre-task reminder.
+
+## Setup — only after the user chooses a goal
+
+> **Do not show this section first.** The value menu and mini plan come first
+> (`ONBOARDING.md`). Show the setup only after the user has chosen a goal and
+> given the one input.
 >
-> Complete the three steps below once, and every subsequent session is ready to scrape.
+> This skill does **no automatic detection** — every condition is verified
+> manually. The AI only reminds, never checks.
 
-### Step I — Install the MonsterGet extension
+### Step I — Show the 3 things (one browser)
 
 Tell the user (in their language, with full clickable links):
 
-> 要抓取 TikTok 数据，需要先在浏览器安装 MonsterGet 扩展。
+> 收到。要拿到完整数据，需要先准备 3 件事（约 3 分钟，只需一次）：
+> ① 安装 MonsterGet 扩展 → 打开 https://monsterget.com/install 安装
+> ② 登录 monsterget.com → 打开 https://monsterget.com 注册并登录
+> ③ 登录 TikTok → 打开 https://www.tiktok.com 登录你的账号
 >
-> 安装页：**https://monsterget.com/install**
->
-> 可以安装在 **Chrome** 或 **Edge**。
->
-> 装好后告诉我装在了哪个浏览器（回复"Edge"或"Chrome"）。
+> 装好扩展后告诉我装在了哪个浏览器（回复"Edge"或"Chrome"），全部准备好了回复"好了"。
 
-**Wait for the user to reply** — do not proceed until they confirm which browser.
+**Wait for the user to reply** with the browser name and "好了". Do not proceed
+until they confirm. Never run a detection script, never scan the disk, never
+verify programmatically.
 
 ### Step II — Save the browser choice
 
@@ -144,20 +244,14 @@ bash "$SCRIPTS/choose-browser.sh" edge
 
 (Use `chrome` if that is what the user chose.)
 
-### Step III — Tell the user to log in
+### Step III — One-browser rule
 
-Tell the user (naming the browser they chose):
+> ⚠️ The extension, the [monsterget.com](https://monsterget.com) login, and the
+> TikTok login must all be in the **same browser** (the one the user chose). If
+> they later switch browsers, re-run Steps I–II.
 
-> 请在 **{浏览器}**（装了 MonsterGet 扩展的那个）里完成以下两步：
->
-> 1. 打开 **https://monsterget.com** 注册并登录
-> 2. 打开 **https://www.tiktok.com** 登录你的 TikTok 账号
->
-> 都登录好了就可以开始抓取了。我会在每次抓取前提醒你确认条件。
-
-That is it. No detection scripts, no verification loops. The user guarantees the conditions.
-
-> ⚠️ **One-browser rule**: the extension, the [monsterget.com](https://monsterget.com) login, and the TikTok login must all be in the **same browser** (the one the user chose). If they later switch browsers, re-run Steps I–III.
+That is it. No detection scripts, no verification loops. The user guarantees the
+conditions.
 
 ## Scrape types — auto-discovered once per session
 
@@ -190,6 +284,10 @@ Each scraper contains all the info needed to build the scrape URL:
 6. The static table of current TikTok scrapers is in the Appendix — human readability only, never for the AI to map against.
 
 ## The flow
+
+> **New user or "how to use"?** Run the value-first onboarding in
+> `ONBOARDING.md` first: value menu -> mini plan -> one input -> JIT setup ->
+> first sample. Do not open with the setup steps.
 
 ### 0. Session start — version check + fetch scrapers (once per session)
 
@@ -450,34 +548,61 @@ The limit counts **running tasks**, not open windows:
 | Video comments | `/tiktok-comments` | `value` (video URL) | 50 | 200 |
 | Video detail | `/tiktok-video-detail` | `value` / `values` (video URL(s)) | 20 | 50 |
 
-### Installation Guide (中文)
+### Value-first onboarding (中文)
 
-**Step I — 安装扩展**
+**第一条消息 — 价值菜单（不要先讲安装）**
 
+```text
+装好了 ✅ 先不用配置。
+你想先用 TikTok 数据达成什么？回复数字：
+
+1️⃣ 找爆款/竞品打法
+   抓关键词或竞品账号下的热门视频，按互动率找选题
+
+2️⃣ 找达人/创作者
+   按内容方向找创作者，看粉丝和互动
+
+3️⃣ 听用户声音
+   抓视频评论，找真实需求/不满
+
+4️⃣ 追标签/趋势
+   看某个标签最近什么内容在涨
+
+回复 1–4；不确定就回复"你推荐"。
 ```
-要抓取 TikTok 数据，需要先在浏览器安装 MonsterGet 扩展。
 
-安装页：https://monsterget.com/install
+**用户选完后 — 迷你方案（示例：找爆款）**
 
-可以安装在 Chrome 或 Edge。
+```text
+好，选「找爆款/竞品打法」。
 
-装好后告诉我装在了哪个浏览器（回复"Edge"或"Chrome"）。
+先跑一个 3–5 分钟的小样（Quick 档，明确标注是小样）：
+- 50 条相关视频：标题/播放/点赞/评论/发布时间
+- 按互动率排序，给你 Top 10
+- 3 个可复制的选题方向
+
+只需要 1 个信息：关键词或竞品账号。
+没有的话回复"你推荐"，我先用行业默认词。
+```
+
+**首次抓取前 — 按需配置（不要放在第一条消息里）**
+
+```text
+收到。要拿到完整数据，需要先准备 3 件事（约 3 分钟，只需一次）：
+① 安装 MonsterGet 扩展 → 打开 https://monsterget.com/install 安装
+② 登录 monsterget.com → 打开 https://monsterget.com 注册并登录
+③ 登录 TikTok → 打开 https://www.tiktok.com 登录你的账号
+
+装好扩展后告诉我装在了哪个浏览器（回复"Edge"或"Chrome"），全部准备好了回复"好了"。
 ```
 
 **User replied → save choice:**
 
 装了 Edge 就写 `bash "$SCRIPTS/choose-browser.sh" edge`，装了 Chrome 就写 `bash "$SCRIPTS/choose-browser.sh" chrome`。
 
-**Step III — 引导登录**
+**One-browser rule:**
 
-```
-请在 {浏览器}（装了 MonsterGet 扩展的那个）里完成以下两步：
-
-1. 打开 https://monsterget.com 注册并登录
-2. 打开 https://www.tiktok.com 登录你的 TikTok 账号
-
-都登录好了就可以开始抓取了。我会在每次抓取前提醒你确认条件。
-```
+扩展、monsterget.com 登录、TikTok 登录必须在同一个浏览器里（用户选的那个）。如果之后换浏览器，重新执行上面的 3 件事。
 
 ### Failure checklist (中文)
 
