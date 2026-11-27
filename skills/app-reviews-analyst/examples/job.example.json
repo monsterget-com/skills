@@ -1,0 +1,27 @@
+{
+  "run_id": "capcut-dual-2026-11",
+  "out": "runs/capcut-dual-2026-11",
+  "recipe": "dual_store",
+  "datasets": [
+    {
+      "name": "ios",
+      "path": "/path/to/app-store-reviews.csv",
+      "platform": "iOS"
+    },
+    {
+      "name": "android",
+      "path": "/path/to/google-play-reviews.csv",
+      "platform": "Android"
+    }
+  ],
+  "options": {
+    "rating_max": 2,
+    "date_range": ["2026-11-07", "2026-11-26"],
+    "sample_per_segment": null,
+    "sample_seed": 42,
+    "taxonomy": "app_reviews",
+    "language": "zh",
+    "top_quotes": 2,
+    "min_rows": 50
+  }
+}

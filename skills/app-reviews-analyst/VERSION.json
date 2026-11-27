@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "skill": "1.0.0",
+  "analysis_schema": "1.0",
+  "requires_python": ">=3.10",
+  "collector": "app-reviews-collector>=1.0.2",
+  "changelog": "v1.0.0: first release — CSV in, rating/theme/daily metrics, self-contained HTML report, metrics.json + tables for downstream content skills."
+}

@@ -1,0 +1,155 @@
+{
+  "id": "app_reviews_generic",
+  "version": "1.0",
+  "themes": [
+    {
+      "id": "paywall",
+      "label_zh": "付费墙 / 订阅",
+      "label_en": "Paywall / subscription",
+      "patterns": [
+        "subscri",
+        "premium",
+        "\\bpro\\b",
+        "\\bpay\\b",
+        "paid",
+        "price",
+        "expensive",
+        "charge",
+        "billing",
+        "purchase",
+        "greedy",
+        "money",
+        "free trial",
+        "订阅",
+        "会员",
+        "收费",
+        "付费",
+        "价格",
+        "太贵",
+        "退款"
+      ]
+    },
+    {
+      "id": "crash",
+      "label_zh": "崩溃 / 报错",
+      "label_en": "Crash / errors",
+      "patterns": [
+        "crash",
+        "\\bbug\\b",
+        "not working",
+        "won.t",
+        "doesn.t work",
+        "broken",
+        "error",
+        "black screen",
+        "force close",
+        "闪退",
+        "崩溃",
+        "打不开",
+        "报错"
+      ]
+    },
+    {
+      "id": "performance",
+      "label_zh": "卡顿 / 加载",
+      "label_en": "Lag / loading",
+      "patterns": [
+        "lag",
+        "slow",
+        "freez",
+        "stuck",
+        "loading",
+        "load",
+        "glitch",
+        "卡顿",
+        "加载",
+        "很慢",
+        "卡住"
+      ]
+    },
+    {
+      "id": "features",
+      "label_zh": "功能 / 更新回退",
+      "label_en": "Features / regressions",
+      "patterns": [
+        "update",
+        "used to",
+        "no longer",
+        "anymore",
+        "bring back",
+        "removed",
+        "missing",
+        "worse",
+        "更新",
+        "以前",
+        "取消",
+        "找不到"
+      ]
+    },
+    {
+      "id": "export",
+      "label_zh": "导出 / 水印 / 画质",
+      "label_en": "Export / watermark / quality",
+      "patterns": [
+        "export",
+        "watermark",
+        "save",
+        "download",
+        "render",
+        "resolution",
+        "quality",
+        "1080",
+        "4k",
+        "导出",
+        "水印",
+        "画质",
+        "保存"
+      ]
+    },
+    {
+      "id": "moderation",
+      "label_zh": "内容审核",
+      "label_en": "Content moderation",
+      "patterns": [
+        "inappropriate",
+        "nude",
+        "sexual",
+        "violence",
+        "hate",
+        "report",
+        "moderation",
+        "色情",
+        "违规",
+        "举报",
+        "审核"
+      ]
+    },
+    {
+      "id": "support",
+      "label_zh": "客服 / 退款",
+      "label_en": "Support / refund",
+      "patterns": [
+        "support",
+        "customer service",
+        "refund",
+        "contact",
+        "response",
+        "help",
+        "客服",
+        "退款",
+        "联系"
+      ]
+    },
+    {
+      "id": "ads",
+      "label_zh": "广告",
+      "label_en": "Ads",
+      "patterns": [
+        "\\bads?\\b",
+        "advertisement",
+        "commercial",
+        "广告"
+      ]
+    }
+  ]
+}
