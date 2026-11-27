@@ -113,10 +113,12 @@ Say in your chat:
    and follow its flow.
 
 5. **Immediately run that skill's First-Run flow.** Install is the one moment
-   the user is listening. The skill's `AGENTS.md` contains the exact setup guide
-   (install extension → log in monsterget.com → log in the target site when
-   required; app-store reviews need no store login), the manual confirmation
-   step, and `choose-browser.sh`.
+   the user is listening. The skill's `AGENTS.md` contains the exact flow. If it
+   defines a **value-first onboarding** (e.g. `tiktok-collector`), start with the
+   value menu and show the setup only after the user chooses a goal. Otherwise
+   follow its setup guide (install extension → log in monsterget.com → log in the
+   target site when required; app-store reviews need no store login), the manual
+   confirmation step, and `choose-browser.sh`.
 
    **Never run detection scripts, scan the disk, or verify programmatically** —
    the user's manual confirmation is the only check.

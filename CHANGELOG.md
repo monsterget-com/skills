@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `tiktok-collector` — value-first onboarding pilot: show a 4-goal business menu before setup, ask one input, then show only the setup the chosen task needs; deliver a labelled Quick sample first and offer Standard. Adds `ONBOARDING.md` and `scripts/set-onboarding.sh` to remember the goal across sessions.
+
 ## v2.0.0-preview — 2026-11-25
 
 ### Added

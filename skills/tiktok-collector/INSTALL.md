@@ -6,7 +6,7 @@ Open your AI client and send this in the chat:
 
 > 💬 Install the tiktok-collector skill from https://github.com/monsterget-com/skills
 
-The AI agent will clone, install, and configure itself. If it asks you to confirm anything, say yes.
+The AI agent will clone and install the skill, then show you a short value menu. Pick a goal and it will guide you through the minimal setup.
 
 ## What the AI does (for your verification)
 
@@ -63,11 +63,21 @@ ls ~/.monsterget/skills/tiktok-collector/SKILL.md && echo "installed"
 ```
 (No automated checks — the AI will guide you manually.)
 
-## First-time user setup (~2 minutes, done once)
+## First-time user setup (~3 minutes, done once)
 
-The moment the skill is installed, the AI **guides you** through 3 manual steps (no code checks, you just confirm):
+The moment the skill is installed, the AI shows a **value menu first** — not the setup steps:
 
-You need 3 things, all in the **same browser** (Edge or Chrome — pick one):
+> 装好了 ✅ 先不用配置。
+> 你想先用 TikTok 数据达成什么？回复数字：
+>
+> 1️⃣ 找爆款/竞品打法
+> 2️⃣ 找达人/创作者
+> 3️⃣ 听用户声音
+> 4️⃣ 追标签/趋势
+>
+> 回复 1–4；不确定就回复"你推荐"。
+
+After you choose, the AI shows a mini plan and asks for **one** input (keyword/tag/creator/video URL). Only then does it show the 3 setup steps:
 
 | Step | What to do | URL |
 |------|-----------|-----|
@@ -75,7 +85,7 @@ You need 3 things, all in the **same browser** (Edge or Chrome — pick one):
 | ② | Log in to monsterget.com (same browser) | [monsterget.com](https://monsterget.com) |
 | ③ | Log in to TikTok (same browser) | [tiktok.com](https://www.tiktok.com) |
 
-Tell the AI which browser you used, say "好了", and the AI saves your choice. **No automatic checks — you confirm manually.** Then the AI offers example prompts — e.g. "抓取关于 'mike tyson' 的 TikTok 视频 50 条".
+Tell the AI which browser you used and say "好了"; the AI saves your choice. **No automatic checks — you confirm manually.** Then the AI runs a Quick sample and gives you a CSV + Top results + 3 insights, with an option to upgrade to a full Standard analysis.
 
 > 💡 This skill uses **pure manual confirmation** — the AI never scans your disk or opens test windows. You know your browser best. If something fails later, the AI will ask you to check the 3 conditions again — still manually.
 >
