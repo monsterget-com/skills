@@ -102,11 +102,11 @@ Depois disso, **cada extração é instantânea.** Nunca mais configure.
 |-------|-----------|-------|
 | [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | Pesquisa de vídeos, criadores, hashtags, vídeos/perfis de criador, comentários e detalhes de vídeo | 7 |
 | [🐦 x-collector](skills/x-collector/SKILL.md) | Feeds de busca, busca de usuários, perfis, tweets do usuário, detalhes/comentários, feed inicial | 7 |
-| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Perfil + About, pessoas similares, extração em lote, busca de vagas e pessoas | 5 |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | Perfil + About, pessoas similares, extração em lote, busca de vagas/pessoas, detalhes da vaga | 5 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Busca de vagas no Upwork (URL / páginas / autoAll) | 1 |
 | [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | Avaliações iOS App Store + Android Google Play, multi-país/idioma | 2 |
 
-**22 tipos no total**, todos via Agent API (`scrapers_api` v4, extensão **1.8.0+**; **1.12.0+** para avaliações da App Store / Google Play).
+**22 tipos no total**, todos via Agent API (`scrapers_api` v4; a versão do catálogo é uma impressão digital de conteúdo atualizada automaticamente — atualmente `19144`; extensão **1.8.0+**, **1.12.0+** para avaliações da App Store / Google Play).
 
 ## 🔧 Como instalar
 

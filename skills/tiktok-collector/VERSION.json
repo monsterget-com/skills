@@ -1,8 +1,8 @@
 {
-  "version": "1.5.2",
-  "skill": "1.5.2",
-  "scrapers_api": "4",
+  "version": "1.5.3",
+  "skill": "1.5.3",
+  "scrapers_api": "19144",
   "extension_recommended": "1.8.0",
   "extension_install_url": "https://monsterget.com/install",
-  "changelog": "v1.5.2: macOS 打开抓取页后自动把 Chrome/Edge 提到前台（osascript activate），避免页面和扩展窗口藏在后台。"
+  "changelog": "v1.5.3: 对齐声明式 Agent 目录（当前 fingerprint 19144，22 个爬虫）；目录新增 LinkedIn 岗位详情。"
 }

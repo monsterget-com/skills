@@ -13,9 +13,14 @@ scraping, no proxies, no Python packages.
 | [skills/linkedin-collector/](skills/linkedin-collector/) | LinkedIn profile, similar-people recommendations, job search, people search, job detail | 5 types |
 | [skills/upwork-collector/](skills/upwork-collector/) | Upwork job search (single/multi-page, auto-all) | 1 type |
 | [skills/app-reviews-collector/](skills/app-reviews-collector/) | iOS App Store + Android Google Play reviews (multi-country/language) | 2 types |
+| [skills/app-reviews-analyst/](skills/app-reviews-analyst/) | App review analysis + self-contained HTML report (Python 3.10+) | CSV → report |
 
 Together they cover the 22 scrapers exposed by the platform Agent API
-(`scrapers_api` version 4; extension **1.8.0+**, **1.12.0+** for app-store reviews).
+(`scrapers_api` v4; the catalog version is a content fingerprint, currently `19144`; extension **1.8.0+**, **1.12.0+** for app-store reviews).
+
+`app-reviews-analyst` is the first **analysis** skill. It turns collector CSVs into
+an HTML report and `metrics.json` for downstream content skills. It requires
+Python 3.10+ (standard library only). Collector skills remain zero-install.
 
 ## Installing a skill
 
@@ -30,6 +35,8 @@ Say in your chat:
 > Install the upwork-collector skill from https://github.com/monsterget-com/skills
 >
 > Install the app-reviews-collector skill from https://github.com/monsterget-com/skills
+>
+> Install the app-reviews-analyst skill from https://github.com/monsterget-com/skills
 
 ### Self-install contract (for the agent receiving that instruction)
 
@@ -75,7 +82,7 @@ Say in your chat:
 
 - All skills use the same `run-scrape.sh` protocol:
   `run-scrape.sh <pagePath> <param> <value> [count] [key=value ...]`
-- The AI discovers the live catalog from `GET /api/agent/scrapers` (version 4).
+- The AI discovers the live catalog from `GET /api/agent/scrapers`; the catalog version is a content fingerprint that changes when any scraper changes.
 - Only the types whose `platform` matches the skill are used.
 - Agent work is isolated behind `task_type='agent'` and
   `auto=1&agentTaskId`; manual scraping on the platform is unchanged.

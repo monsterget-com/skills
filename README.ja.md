@@ -102,11 +102,11 @@ MonsterGet はゲームを変えます：**収集はあなた自身のブラウ�
 |-------|------|----------|
 | [🎵 tiktok-collector](skills/tiktok-collector/SKILL.md) | 動画検索、クリエイター発掘、ハッシュタグ、ユーザー動画/プロフィール、動画コメント・詳細 | 7 |
 | [🐦 x-collector](skills/x-collector/SKILL.md) | 検索フィード、ユーザー検索、プロフィール、ユーザー投稿、投稿詳細/コメント、ホームフィード | 7 |
-| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn プロフィール + About、類似ユーザー、一括取得、求人検索、ユーザー検索 | 5 |
+| [💼 linkedin-collector](skills/linkedin-collector/SKILL.md) | LinkedIn プロフィール + About、類似ユーザー、一括取得、求人検索、ユーザー検索、求人詳細 | 5 |
 | [💼 upwork-collector](skills/upwork-collector/SKILL.md) | Upwork 求人検索（URL / ページ数 / autoAll） | 1 |
 | [⭐ app-reviews-collector](skills/app-reviews-collector/SKILL.md) | iOS App Store + Android Google Play レビュー、多国・多言語 | 2 |
 
-**合計 22 タイプ**、すべて Agent API（`scrapers_api` v4、拡張 **1.8.0+**、App Store / Google Play レビューは **1.12.0+**）経由。
+**合計 22 タイプ**、すべて Agent API（`scrapers_api` v4、カタログ版は内容フィンガープリントで自動更新・現在 `19144`、拡張 **1.8.0+**、App Store / Google Play レビューは **1.12.0+**）経由。
 
 ## 🔧 インストール方法
 

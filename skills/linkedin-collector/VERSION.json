@@ -1,8 +1,8 @@
 {
-  "version": "1.2.2",
-  "skill": "1.2.2",
-  "scrapers_api": "4",
+  "version": "1.2.3",
+  "skill": "1.2.3",
+  "scrapers_api": "19144",
   "extension_recommended": "1.8.0",
   "extension_install_url": "https://monsterget.com/install",
-  "changelog": "v1.2.2: 新增 linkedin_job_detail（批量岗位详情）说明；batch 类型统一用 catalog 的 batchParam（values）。"
+  "changelog": "v1.2.3: 对齐声明式 Agent 目录（当前 fingerprint 19144，22 个爬虫）；LinkedIn 5 个类型含岗位详情。"
 }

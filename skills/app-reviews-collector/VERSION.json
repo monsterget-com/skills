@@ -1,8 +1,8 @@
 {
-  "version": "1.0.1",
-  "skill": "1.0.1",
-  "scrapers_api": "4",
+  "version": "1.0.2",
+  "skill": "1.0.2",
+  "scrapers_api": "19144",
   "extension_recommended": "1.12.0",
   "extension_install_url": "https://monsterget.com/install",
-  "changelog": "v1.0.1: macOS 打开抓取页后自动把 Chrome/Edge 提到前台（osascript activate），避免页面和扩展窗口藏在后台。"
+  "changelog": "v1.0.2: 对齐声明式 Agent 目录（当前 fingerprint 19144，22 个爬虫）；应用商店评论行为不变。"
 }

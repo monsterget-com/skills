@@ -79,5 +79,5 @@ Tell the AI which browser you used, say "好了", and the AI saves your choice. 
 
 > 💡 This skill uses **pure manual confirmation** — the AI never scans your disk or opens test windows. You know your browser best. If something fails later, the AI will ask you to check the 3 conditions again — still manually.
 >
-> This skill uses the shared Agent v2 contract (`scrapers_api` version 4) and
+> This skill uses the shared Agent v2 contract (`scrapers_api` v4; catalog version is a content fingerprint) and
 > requires extension **1.8.0+**.
